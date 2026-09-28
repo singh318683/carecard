@@ -8,6 +8,7 @@ Upload a photo of your health insurance card. Claude reads it, lays out copays, 
 public/index.html   the whole front end (no build step)
 api/read.js         POST /api/read: reads the card photo(s)
 api/ask.js          POST /api/ask: answers follow-up questions
+api/providers.js    POST /api/providers: top-rated providers near a ZIP (Google Places)
 api/_claude.js      shared Claude API helper (not a route)
 vercel.json         gives the API functions up to 60 s
 ```
@@ -17,6 +18,7 @@ vercel.json         gives the API functions up to 60 s
 1. Import this GitHub repo in Vercel (Framework preset: **Other**, no build command).
 2. In **Settings → Environment Variables**, add `ANTHROPIC_API_KEY` with a key from https://console.anthropic.com.
    You can also set `CLAUDE_MODEL` (default `claude-sonnet-5`).
+   For provider search, also add `GOOGLE_PLACES_API_KEY` (Google Cloud project with **Places API (New)** enabled).
 3. Redeploy.
 
 ## Notes
@@ -26,4 +28,5 @@ vercel.json         gives the API functions up to 60 s
 - Nothing is stored. Images go from the browser to the function to the Claude API and are discarded.
 - The member ID is masked on screen and never sent with follow-up questions.
 - Anyone with the link spends your API credit. Before sharing widely, add rate limiting or a login, and set a spend limit in the Anthropic console.
+- Provider search runs one Google Places Text Search per category tap (about $0.035 each after 1,000 free per month). Results are cached for an hour per location, radius and category.
 - iPhone HEIC photos only open in Safari. In other browsers, upload a JPG or a screenshot.

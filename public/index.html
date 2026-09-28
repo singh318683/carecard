@@ -127,6 +127,25 @@ ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
 
 img{max-width:100%}
 body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(56px,env(safe-area-inset-bottom))}
+.findbar{display:grid;grid-template-columns:140px auto minmax(0,1fr);gap:12px;align-items:end}
+@media (max-width:640px){.findbar{grid-template-columns:1fr 1fr}.findbar .radf{grid-column:1/-1}}
+.findbar .btn{padding:11px 14px}
+input[type=range]{width:100%;accent-color:var(--accent);height:40px}
+.chip[aria-pressed=true]{background:var(--accent);color:var(--accent-ink);border-color:var(--accent)}
+.provlist{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:12px}
+.prov{border:1px solid var(--line);border-radius:12px;padding:14px 16px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.prov .top{display:flex;justify-content:space-between;gap:10px;align-items:baseline}
+.prov .nm{font-weight:600;line-height:1.3}
+.prov .rank{font:600 12px/1 var(--mono);color:var(--ink-2)}
+.stars{display:flex;gap:8px;align-items:center;font-size:14px;flex-wrap:wrap}
+.stars b{font-family:var(--mono);font-variant-numeric:tabular-nums}
+.stars .bar{position:relative;width:70px;height:6px;border-radius:3px;background:var(--surface-2);overflow:hidden}
+.stars .bar i{position:absolute;inset:0 auto 0 0;background:var(--med)}
+.prov .meta{font-size:13px;color:var(--ink-2)}
+.prov .open{color:var(--accent);font-weight:600}
+.prov .links{display:flex;gap:12px;flex-wrap:wrap;font-size:13.5px;margin-top:4px}
+.prov .links a{color:var(--accent);font-weight:600;text-decoration:none}
+.prov .links a:hover{text-decoration:underline}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -175,6 +194,44 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
 
     <section class="results" aria-live="polite" id="results"></section>
   </div>
+
+  <section class="panel" id="findPanel" aria-labelledby="find-h">
+    <div class="findhead">
+      <div><h2 id="find-h">Find top-rated providers</h2>
+      <p class="note" id="netHint">Highest-rated nearby, ranked by Google rating and review count. Tap a category to search.</p></div>
+    </div>
+    <div class="findbar">
+      <label class="field zipf"><span>ZIP code</span>
+        <input type="text" id="zip" inputmode="numeric" maxlength="5" placeholder="72201" autocomplete="postal-code">
+      </label>
+      <button class="btn ghost" id="locBtn" type="button">Use my location</button>
+      <label class="field radf"><span>Within <output id="radOut" for="radius">10</output> miles</span>
+        <input type="range" id="radius" min="1" max="50" step="1" value="10">
+      </label>
+    </div>
+    <div class="chips" id="cats">
+      <button class="chip" type="button" data-cat="primary">Primary care</button>
+      <button class="chip" type="button" data-cat="urgent">Urgent care</button>
+      <button class="chip" type="button" data-cat="er">Emergency room</button>
+      <button class="chip" type="button" data-cat="pediatrics">Pediatrics</button>
+      <button class="chip" type="button" data-cat="obgyn">OB-GYN</button>
+      <button class="chip" type="button" data-cat="dermatology">Dermatology</button>
+      <button class="chip" type="button" data-cat="orthopedics">Orthopedics</button>
+      <button class="chip" type="button" data-cat="cardiology">Cardiology</button>
+      <button class="chip" type="button" data-cat="mental">Mental health</button>
+      <button class="chip" type="button" data-cat="imaging">Imaging (MRI/CT)</button>
+      <button class="chip" type="button" data-cat="lab">Lab tests</button>
+      <button class="chip" type="button" data-cat="pt">Physical therapy</button>
+      <button class="chip" type="button" data-cat="pharmacy">Pharmacy</button>
+    </div>
+    <form class="row" id="customForm">
+      <input type="text" id="customQ" placeholder="Or search a specialty, e.g. allergist, sleep study, ENT" style="flex:1;min-width:0" aria-label="Custom specialty">
+      <button class="btn ghost" type="submit">Search</button>
+    </form>
+    <div class="status" id="findStatus" hidden></div>
+    <div id="provList" class="provlist"></div>
+    <p class="note">Ratings come from Google reviews and reflect patient experience, not medical quality. A high rating doesn't mean a provider takes your plan: use "Check network" before booking.</p>
+  </section>
 
   <section class="panel" id="askPanel" aria-labelledby="ask-h">
     <h2 id="ask-h">Ask about your plan</h2>
@@ -474,7 +531,7 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
       } else {
         data.card = data.card || {};
         current = data; showId = false; chatTurns = []; $("chat").innerHTML = "";
-        render(); setStatus("");
+        render(); updateNetHint(); setStatus(""); $("provList").innerHTML = ""; lastSearch = null;
         $("results").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
       }
     }catch(e){
@@ -517,7 +574,102 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
   $("chips").addEventListener("click", e=>{ if(e.target.classList.contains("chip")) ask(e.target.textContent); });
 
 
+  // ---------- Provider finder ----------
+  const NETWORK_DIRS = [
+    [/aetna/i, "https://www.aetna.com/dsepublic/#/contentPage?page=providerSearchLanding&site_id=docfind"],
+    [/united\s*health|uhc|optum/i, "https://www.uhc.com/find-a-doctor"],
+    [/cigna/i, "https://hcpdirectory.cigna.com/"],
+    [/humana/i, "https://finder.humana.com/finder/search"],
+    [/blue\s*cross|blue\s*shield|bcbs|anthem|arkansas\s*blue/i, "https://www.bcbs.com/find-a-doctor"],
+    [/ambetter|centene/i, "https://guide.ambetterhealth.com/"],
+    [/kaiser/i, "https://healthy.kaiserpermanente.org/doctors-locations"],
+    [/molina/i, "https://molina.sapphirethreesixtyfive.com/"],
+  ];
+  function networkLink(){
+    const c = current.card || {};
+    const hay = [c.insurer, c.network, c.planName].filter(has).join(" ");
+    for(const [re,url] of NETWORK_DIRS) if(re.test(hay)) return url;
+    if(has(c.website)) return /^https?:/i.test(c.website) ? c.website : "https://" + c.website;
+    return "";
+  }
+  function updateNetHint(){
+    const c = current.card || {};
+    const net = [c.network, c.planName].filter(has)[0];
+    $("netHint").textContent = "Highest-rated nearby, ranked by Google rating and review count. Tap a category to search." +
+      (net && !current.example ? ` To confirm a provider takes your plan, search for "${net}" in your insurer's directory.` : "");
+  }
+
+  let geo = null, findCtl = null, lastSearch = null;
+  try{ const z = localStorage.getItem("cc_zip"); if(z) $("zip").value = z; const r = localStorage.getItem("cc_radius"); if(r) { $("radius").value = r; $("radOut").textContent = r; } }catch(_){}
+  $("radius").addEventListener("input", e=>{ $("radOut").textContent = e.target.value; });
+  $("radius").addEventListener("change", e=>{ try{ localStorage.setItem("cc_radius", e.target.value); }catch(_){} if(lastSearch) findProviders(lastSearch); });
+  $("zip").addEventListener("input", ()=>{ geo = null; $("locBtn").textContent = "Use my location"; });
+
+  $("locBtn").onclick = ()=>{
+    if(!navigator.geolocation){ setFind("Your browser can't share location. Enter a ZIP code instead.", true); return; }
+    $("locBtn").textContent = "Locating…";
+    navigator.geolocation.getCurrentPosition(
+      pos=>{ geo = {lat:pos.coords.latitude, lng:pos.coords.longitude}; $("zip").value = ""; $("locBtn").textContent = "✓ Using your location"; setFind(""); if(lastSearch) findProviders(lastSearch); },
+      ()=>{ $("locBtn").textContent = "Use my location"; setFind("Location was blocked. Enter a ZIP code instead.", true); },
+      { enableHighAccuracy:false, timeout:10000, maximumAge:600000 }
+    );
+  };
+
+  function setFind(msg, err){ const s=$("findStatus"); if(!msg){ s.hidden=true; return; } s.hidden=false; s.textContent=msg; s.classList.toggle("err", !!err); }
+  function findCopy(code, message){
+    return ({
+      no_places_key:"Provider search isn't set up yet: add GOOGLE_PLACES_API_KEY in Vercel, then redeploy.",
+      bad_zip: message || "Enter a 5-digit ZIP code.",
+      places_error:"The provider search service returned an error. Try again in a moment.",
+      network:"Couldn't reach the server. Check your connection and try again.",
+    })[code] || "Something went wrong searching. Try again in a moment.";
+  }
+
+  async function findProviders(search){
+    const zip = $("zip").value.trim();
+    if(!geo && !/^\d{5}$/.test(zip)){ setFind("Enter your 5-digit ZIP code or tap Use my location.", true); $("zip").focus(); return; }
+    lastSearch = search;
+    document.querySelectorAll("#cats .chip").forEach(b=>b.setAttribute("aria-pressed", String(b.dataset.cat === search.category)));
+    try{ if(zip) localStorage.setItem("cc_zip", zip); }catch(_){}
+    const radius = Number($("radius").value);
+    findCtl && findCtl.abort(); findCtl = new AbortController();
+    setFind(`Searching within ${radius} miles…`);
+    $("provList").innerHTML = "";
+    try{
+      const body = { radiusMiles: radius, ...search, ...(geo ? geo : { zip }) };
+      const d = await post("/api/providers", body, findCtl.signal);
+      renderProviders(d);
+    }catch(e){
+      if(e && e.code === "cancelled") return;
+      setFind(findCopy(e && e.code, e && e.message), true);
+    }
+  }
+
+  function renderProviders(d){
+    const list = d.results || [];
+    if(!list.length){ setFind(`No rated results for "${d.query}" within ${d.radiusMiles} miles of ${d.origin}. Try a larger radius.`); return; }
+    setFind(`Top ${list.length} for "${d.query}" within ${d.radiusMiles} miles of ${d.origin}`);
+    const net = networkLink();
+    $("provList").innerHTML = list.map((p,i)=>`
+      <article class="prov">
+        <div class="top"><span class="nm">${esc(p.name)}</span><span class="rank">#${i+1}</span></div>
+        <div class="stars"><b>${esc(p.rating.toFixed(1))}</b><span class="bar" aria-hidden="true"><i style="width:${Math.round(p.rating/5*100)}%"></i></span>
+          <span class="meta">${esc(p.reviews.toLocaleString())} reviews</span></div>
+        <div class="meta">${esc(p.miles)} mi · ${esc(p.address||"")}</div>
+        <div class="meta">${p.phone?esc(p.phone):""}${p.openNow===true?`${p.phone?" · ":""}<span class="open">Open now</span>`:p.openNow===false?`${p.phone?" · ":""}Closed now`:""}</div>
+        <div class="links">
+          ${p.maps?`<a href="${esc(p.maps)}" target="_blank" rel="noopener">Directions</a>`:""}
+          ${p.website?`<a href="${esc(p.website)}" target="_blank" rel="noopener">Website</a>`:""}
+          ${net?`<a href="${esc(net)}" target="_blank" rel="noopener">Check network</a>`:""}
+        </div>
+      </article>`).join("");
+  }
+
+  $("cats").addEventListener("click", e=>{ const b = e.target.closest(".chip"); if(b) findProviders({category:b.dataset.cat}); });
+  $("customForm").addEventListener("submit", e=>{ e.preventDefault(); const q=$("customQ").value.trim(); if(q) findProviders({custom:q}); });
+
   render();
+  updateNetHint();
 })();
 </script>
 </body>
