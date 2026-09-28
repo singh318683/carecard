@@ -37,8 +37,9 @@ Tasks:
 3. Write a planSummary in plain English for someone who finds insurance confusing.
 4. Give 4-6 practical recommendations tailored to THIS card (its copay spread, plan type rules like referrals for HMO, HSA if HDHP, Rx codes, network name, telehealth if listed). Mark priority high only for things that can save real money or avoid a denied claim.
 5. Give 3-5 questions to ask member services.
-6. If a coverage document is provided: fill "coverage" with 8-15 of the most useful services (doctor visits, specialist, urgent care, ER, hospital stay, imaging, lab, generic and brand drugs, mental health, maternity, physical therapy, preventive care, plus anything the person mentioned). Copy costs exactly as written. Set priorAuth true only when the document says preauthorization/prior approval is required. Also fill card.deductible and card.outOfPocketMax from the document when the card lacks them. If the document shows this is a fixed-indemnity, limited-benefit or short-term plan rather than ACA major medical, say so clearly in planSummary and add a high-priority recommendation. Base recommendations on the document too.
+6. If a coverage document is provided: if it describes several plans or options, use the one that matches the card or what the person typed, and name it in coverage.source. Fill "coverage" with up to 15 of the most useful services (doctor visits, specialist, urgent care, ER, hospital stay, imaging, lab, generic and brand drugs, mental health, maternity, physical therapy, preventive care, plus anything the person mentioned). Copy costs exactly as written. Set priorAuth true only when the document says preauthorization/prior approval is required. Also fill card.deductible and card.outOfPocketMax from the document when the card lacks them. If the document shows this is a fixed-indemnity, limited-benefit or short-term plan rather than ACA major medical, say so clearly in planSummary and add a high-priority recommendation. Base recommendations on the document too.
    If no coverage document is provided, set "coverage": null.
+Keep it compact: notes under 15 words, each notCovered/watchOut item under 20 words, at most 10 notCovered and 8 watchOut items. Use plain strings and escape any double quotes inside strings.
 If the input is not an insurance card or coverage document, or is unreadable, set "readable": false and explain in "issue".
 
 Reply with only JSON in this shape, no other text:
@@ -87,9 +88,23 @@ module.exports = async function handler(req, res) {
     if (context.trim()) text += `\n\nWhat's coming up for me: ${context}\nTailor the recommendations to this.`;
     content.push({ type: "text", text });
 
-    const reply = await callClaude({ system: SYSTEM, messages: [{ role: "user", content }], maxTokens: doc ? 5000 : 2500 });
-    const data = parseJson(reply);
-    if (!data) return res.status(502).json({ code: "invalid_json", error: "Could not parse the reading." });
+    const { text: reply, stopReason } = await callClaude({ system: SYSTEM, messages: [{ role: "user", content }], maxTokens: doc ? 12000 : 4000 });
+    let data = parseJson(reply);
+
+    if (!data) {
+      console.error("Unparseable reply", { stopReason, length: reply.length, start: reply.slice(0, 300), end: reply.slice(-300) });
+      if (stopReason === "max_tokens") {
+        return res.status(502).json({ code: "too_long", error: "The document produced too long a reading." });
+      }
+      // One repair attempt: ask Claude to turn its own reply into valid JSON.
+      const fix = await callClaude({
+        system: "Convert the text you are given into one valid JSON object that follows the same structure. Fix quoting and escaping, drop anything outside the object. Reply with only the JSON.",
+        messages: [{ role: "user", content: reply.slice(0, 60000) }],
+        maxTokens: 12000,
+      });
+      data = parseJson(fix.text);
+      if (!data) return res.status(502).json({ code: "invalid_json", error: "Could not parse the reading." });
+    }
 
     res.status(200).json(data);
   } catch (err) {

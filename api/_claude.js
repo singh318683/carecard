@@ -31,11 +31,12 @@ async function callClaude({ system, messages, maxTokens = 2000 }) {
     throw err;
   }
 
-  return (data.content || [])
+  const text = (data.content || [])
     .filter((b) => b.type === "text")
     .map((b) => b.text)
     .join("")
     .trim();
+  return { text, stopReason: data.stop_reason };
 }
 
 // Pull one JSON object out of a reply, tolerating code fences or a stray sentence.

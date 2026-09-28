@@ -1,5 +1,6 @@
 {
   "functions": {
-    "api/*.js": { "maxDuration": 60 }
+    "api/read.js": { "maxDuration": 300 },
+    "api/ask.js": { "maxDuration": 60 }
   }
 }

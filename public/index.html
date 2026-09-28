@@ -336,19 +336,6 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
     s.hidden = false; s.textContent = msg; s.classList.toggle("err", !!err);
   }
 
-  function copyFor(code){
-    return ({
-      not_granted:"CareCard needs your OK to use Claude. Reload the page and allow it to read cards.",
-      sampling_disabled:"Claude isn't available on this account, so the card can't be read here.",
-      rate_limited:"Too many requests right now. Wait a minute and try again.",
-      session_expired:"Your session expired. Sign in again, then retry.",
-      image_rejected:"That photo couldn't be used. Try a JPG or PNG under 20 MB, taken flat and in good light.",
-      images_unavailable:"Photo reading isn't available here. Type the card details instead.",
-      refused:"Claude couldn't read this. Make sure the photo shows an insurance card.",
-      invalid_json:"The reading came back incomplete. Press Read my card again.",
-      empty_completion:"Nothing came back. Try a clearer photo.",
-    })[code] || "Something went wrong reaching Claude. Try again in a moment.";
-  }
 
   // file handling
   function bindDrop(which){
@@ -459,7 +446,8 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
       rate_limited:"Too many requests right now. Wait a minute and try again.",
       too_large:"The photos are too large. Try smaller or cropped photos.",
       no_key:"The server isn't set up yet: add ANTHROPIC_API_KEY in Vercel, then redeploy.",
-      invalid_json:"The reading came back incomplete. Press Read my card again.",
+      invalid_json:"The reading came back incomplete. Press Read my coverage again.",
+      too_long:"That document is too long to read in one go. Upload just the benefits pages for your plan (as photos or a shorter PDF).",
       network:"Couldn't reach the server. Check your connection and try again.",
       bad_request: message || "Something was missing from the request.",
       doc_scanned_large:"That PDF is a scan and too large to send. Upload photos of the benefit pages instead (up to 6).",

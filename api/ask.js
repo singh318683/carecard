@@ -28,7 +28,7 @@ ${body.coverage ? "Coverage from their benefits document:\n" + JSON.stringify(bo
 
 Be concise (under 150 words), plain English, no markdown headers. When the card doesn't say, explain what's typical and tell them to confirm with the member services number on the card. Never claim to know exact coverage.`;
 
-    const text = await callClaude({ system, messages, maxTokens: 600 });
+    const { text } = await callClaude({ system, messages, maxTokens: 800 });
     res.status(200).json({ text: text || "I couldn't come up with an answer. Try rephrasing." });
   } catch (err) {
     sendError(res, err);
