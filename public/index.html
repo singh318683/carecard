@@ -164,6 +164,19 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
 .checks .ic{font:700 12px/22px var(--mono);text-align:center;border-radius:6px;height:22px}
 .s-pass .ic{background:var(--accent-soft);color:var(--accent)} .s-warn .ic{background:var(--med-soft);color:var(--med)}
 .s-fail .ic{background:var(--high-soft);color:var(--high)} .s-unknown .ic{background:var(--surface-2);color:var(--ink-2)}
+.savings{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:10px}
+@media (max-width:560px){.savings{grid-template-columns:1fr}}
+.sv{border:1px solid var(--line);border-radius:12px;padding:12px 14px;display:flex;flex-direction:column;gap:6px;background:var(--surface)}
+.sv .k{font:600 11px/1.2 var(--body);letter-spacing:.07em;text-transform:uppercase;color:var(--ink-2)}
+.sv b{font:600 clamp(20px,3vw,26px)/1.1 var(--mono);font-variant-numeric:tabular-nums}
+.sv .bad{color:var(--high)} .sv .good{color:var(--accent)}
+.sv.hi{background:var(--high-soft);border-color:transparent} .sv.hi b{color:var(--high)}
+.issues{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.issues li{display:grid;grid-template-columns:1fr auto;gap:12px;border:1px solid var(--line);border-left-width:5px;border-radius:10px;padding:10px 14px;background:var(--surface)}
+.issues li.c-clear{border-left-color:var(--high)} .issues li.c-likely{border-left-color:var(--med)} .issues li.c-question{border-left-color:var(--low)}
+.issues .it{display:flex;flex-direction:column;gap:4px;min-width:0}
+.issues .tags{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+.issues .amt{font:600 15px/1.3 var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
 .script{background:var(--surface-2);border-radius:10px;padding:12px 14px;font-size:14.5px;white-space:pre-wrap}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
@@ -685,6 +698,27 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
     const lines = (d.lines||[]).filter(l=>l && has(l.description));
     let h = `<div class="verdict v-${v}"><span class="vi" aria-hidden="true">${VERDICT[v][0]}</span>
       <div><h3>${VERDICT[v][1]}</h3><p>${esc(d.verdictReason||"")}</p></div></div>`;
+
+    const num = x => (typeof x === "number" && isFinite(x)) ? x : (typeof x === "string" && x.trim() !== "" && isFinite(Number(x.replace(/[$,]/g,""))) ? Number(x.replace(/[$,]/g,"")) : null);
+    const usd = x => "$" + x.toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
+    const billed = num(d.billedToPatient), owe = num(d.patientShouldOwe), save = num(d.potentialSavings);
+    if(billed !== null && billed > 0 && (owe !== null || (save||0) > 0)){
+      h += `<div class="savings">
+        <div class="sv"><span class="k">Bill asks you to pay</span><b class="bad">${usd(billed)}</b></div>
+        <div class="sv"><span class="k">You should owe</span><b class="good">${owe !== null ? usd(owe) : "—"}</b></div>
+        <div class="sv hi"><span class="k">Potential overcharge</span><b>${save ? usd(save) : "$0.00"}</b></div>
+      </div>`;
+    }
+    const issues = (d.issues||[]).filter(x=>x && has(x.title));
+    if(issues.length){
+      h += `<div><h3 style="margin-bottom:8px">Flagged charges</h3><ul class="issues">` + issues.map(x=>{
+        const amt = num(x.amount), conf = ["clear","likely","question"].includes(x.confidence) ? x.confidence : "likely";
+        const lab = {clear:"Clear error", likely:"Likely error", question:"Worth asking"}[conf];
+        return `<li class="c-${conf}"><div class="it"><strong>${esc(x.title)}</strong>
+          <span class="tags"><span class="pill ${conf==="clear"?"high":conf==="likely"?"medium":"low"}">${lab}</span>${x.affects==="your plan"?`<span class="cat">Paid by your plan</span>`:`<span class="cat">Billed to you</span>`}${has(x.lines)?`<span class="cat">${esc(x.lines)}</span>`:""}</span>
+          <div class="muted">${esc(x.detail||"")}</div></div><div class="amt">${amt ? usd(amt) : ""}</div></li>`;
+      }).join("") + `</ul></div>`;
+    }
 
     h += `<div class="cols"><div class="panel"><h3>What the document says</h3><dl class="facts">`;
     [["Type",d.documentType],["Provider",d.provider],["Patient",d.patient],["Date of service",d.dateOfService],["Service",d.serviceType],

@@ -10,6 +10,10 @@ const SCHEMA = `{
   "provider": "", "patient": "", "dateOfService": "", "serviceType": "",
   "lines": [{"description": "", "code": "CPT/HCPCS code if shown", "billed": "", "insurancePaid": "", "youOwe": ""}],
   "totals": {"billed": "", "adjustments": "", "insurancePaid": "", "youOwe": "", "youPaid": ""},
+  "billedToPatient": 0,
+  "patientShouldOwe": null,
+  "potentialSavings": 0,
+  "issues": [{"title": "short name of the problem", "amount": 0, "affects": "you | your plan", "confidence": "clear | likely | question", "lines": "which bill line(s)", "detail": "1-2 sentences with the evidence"}],
   "expected": "What this plan says the member should pay for this kind of service, e.g. 'In-network lab: counts toward $500 deductible, then 10%'",
   "verdict": "looks_right | needs_check | possible_error | cannot_verify",
   "verdictReason": "1-2 plain sentences",
@@ -27,7 +31,14 @@ Run these checks when the information allows (mark "unknown" when it doesn't, ne
 - Cost-sharing: does the amount the member owes match the plan's copay / deductible / coinsurance for this service type?
 - Preventive care: if the service could be preventive (annual physical labs, screenings, vaccines), note that ACA-compliant plans cover in-network preventive care at $0 and a charge may mean wrong coding. Fixed-indemnity or short-term plans are exempt.
 - Bill vs EOB: the member should never be billed more than the EOB's "patient responsibility". If there is no EOB, say it is needed.
-- Duplicates, math errors, balance billing, and charges after the out-of-pocket maximum.
+- Duplicates (same code, same date), and math errors (quantity x unit price must equal the line amount).
+- Unbundling: lab panels already include their components (e.g. CMP 80053 includes glucose 82947, creatinine 82565, BUN, electrolytes; BMP 80048 likewise). Routine supplies are usually included in facility visit charges.
+- Time-based units: compare hourly/daily units (e.g. observation G0378 per hour, room per day) with arrival and discharge times on the bill.
+- Balance billing: an in-network provider may only collect the EOB "patient responsibility". Any amount above it (often "charges minus insurance payment" with no contractual adjustment) is an overcharge. Lines the EOB marks "member not responsible" must not be billed to the patient.
+- Charges after the out-of-pocket maximum.
+
+Money fields: "billedToPatient" is what the bill asks the member to pay (a number, 0 if none). "patientShouldOwe" is the correct member amount from the EOB or plan rules (a number), or null when it can't be determined. "potentialSavings" = billedToPatient - patientShouldOwe when both are known, else the sum of clear issues that affect the member (never negative).
+"issues" lists each specific problem with its dollar amount as billed (a number; 0 if not quantifiable). "affects": "you" when the member is being asked to pay it, "your plan" when the insurer paid for something wrong (it still raises premiums and is worth reporting). "confidence": "clear" when the documents prove it, "likely" when strongly suggested, "question" when it is only worth asking about (e.g. a high visit level). Issues may overlap (a line the EOB denied is also inside a balance-billing amount); that is fine because the headline uses potentialSavings, never the sum of issues. Order issues by amount, largest first.
 - Surprise billing: if relevant (ER, out-of-network provider at in-network facility), mention No Surprises Act protections.
 
 Verdict rules: "looks_right" only when the documents show the amount matches the plan. "possible_error" when something conflicts. "needs_check" when it is plausible but one document (usually the EOB) is missing. "cannot_verify" when the plan details are missing.
