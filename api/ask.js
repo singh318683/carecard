@@ -21,9 +21,10 @@ module.exports = async function handler(req, res) {
       return res.status(400).json({ code: "bad_request", error: "Ask a question first." });
     }
 
-    const system = `You are CareCard, a friendly U.S. health insurance explainer. Answer using this member's card data${body.example ? " (this is EXAMPLE data, not the person's real card; say so if relevant)" : ""}:
+    const system = `You are CareCard, a friendly U.S. health insurance explainer. Answer using this member's card and coverage data${body.example ? " (this is EXAMPLE data, not the person's real card; say so if relevant)" : ""}:
 ${JSON.stringify(card).slice(0, 6000)}
 Plan summary: ${String(body.planSummary || "").slice(0, 1000)}
+${body.coverage ? "Coverage from their benefits document:\n" + JSON.stringify(body.coverage).slice(0, 12000) : "They have not uploaded a coverage document; if a question needs one, suggest uploading their Summary of Benefits and Coverage."}
 
 Be concise (under 150 words), plain English, no markdown headers. When the card doesn't say, explain what's typical and tell them to confirm with the member services number on the card. Never claim to know exact coverage.`;
 

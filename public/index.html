@@ -107,9 +107,28 @@ ol.qs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .disclaimer{font-size:13px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:16px;max-width:760px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 [hidden]{display:none!important}
+.docbox{position:relative;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;border:1.5px dashed var(--line);border-radius:12px;padding:12px 40px 12px 12px;background:var(--surface-2);cursor:pointer;transition:border-color .15s}
+.docbox:hover,.docbox.over,.docbox.filled{border-color:var(--accent)}
+.docbox:focus-within{outline:2px solid var(--accent);outline-offset:2px}
+.docbox input{position:absolute;inset:0;opacity:0;cursor:pointer}
+.docbox .docicon{font:600 11px/1 var(--mono);color:var(--accent);background:var(--accent-soft);border-radius:6px;width:40px;height:48px;display:flex;align-items:center;justify-content:center}
+.docbox .lbl{font-weight:600;font-size:14px}
+.docbox .sub{font-size:12px;color:var(--ink-2);word-break:break-word}
+.docbox .clear{position:absolute;top:50%;right:8px;transform:translateY(-50%);z-index:2;background:var(--surface);color:var(--ink);border:1px solid var(--line);border-radius:999px;width:26px;height:26px;font-size:14px;line-height:1;cursor:pointer}
+.tablewrap{overflow-x:auto}
+table.cov{width:100%;border-collapse:collapse;font-size:14px;min-width:520px}
+table.cov th{text-align:left;font-size:11.5px;text-transform:uppercase;letter-spacing:.07em;color:var(--ink-2);font-weight:600;padding:8px 10px;border-bottom:1px solid var(--line)}
+table.cov td{padding:10px;border-bottom:1px solid var(--line);vertical-align:top}
+table.cov td.money{font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums}
+table.cov tr:last-child td{border-bottom:none}
+.pa{display:inline-block;margin-top:4px;font:600 10.5px/1 var(--body);letter-spacing:.05em;text-transform:uppercase;padding:4px 6px;border-radius:999px;background:var(--med-soft);color:var(--med)}
+ul.plain{margin:0;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.nc li::marker{color:var(--high)}
+
 img{max-width:100%}
 body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(56px,env(safe-area-inset-bottom))}
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
 <body>
 
@@ -117,7 +136,7 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
   <header>
     <span class="eyebrow">CareCard</span>
     <h1>Snap your insurance card. Get a plain-English read on your plan.</h1>
-    <p class="muted">Upload the front and back of your health insurance card. Claude reads it, pulls out the numbers that matter (copays, deductible, Rx BIN/PCN, phone lines) and tells you what to do with them.</p>
+    <p class="muted">Upload your health insurance card, and your benefits document if you have it. Claude pulls out the numbers that matter (copays, deductible, what's covered, what needs prior approval) and tells you what to do with them.</p>
   </header>
 
   <div class="grid">
@@ -133,6 +152,13 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
           <span class="lbl">Back</span><span class="sub">Optional, but has Rx and phone info</span>
         </div>
       </div>
+      <div class="docbox" id="docBox">
+        <input type="file" id="fileDoc" accept="application/pdf,image/*" multiple aria-label="Upload coverage document">
+        <div class="docicon" aria-hidden="true">PDF</div>
+        <div><div class="lbl">Coverage document <span class="muted" style="font-weight:400">(optional)</span></div>
+        <div class="sub" id="docLabel">Your Summary of Benefits and Coverage (SBC) PDF, or photos of its pages</div></div>
+        <button type="button" class="clear" id="docClear" hidden aria-label="Remove coverage document">×</button>
+      </div>
       <label class="field" id="typedWrap"><span>Or type what your card says <span class="muted" style="font-weight:400">(if you have no photo)</span></span>
         <textarea id="typed" rows="5" placeholder="e.g. Plan: Gold PPO 1500 · Copays PCP $25 / Spec $50 / ER $300 · RxBIN 610014 ..."></textarea>
       </label>
@@ -140,11 +166,11 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
         <textarea id="context" rows="3" placeholder="e.g. I need a knee MRI, I take one daily prescription, I'm moving to Texas next year"></textarea>
       </label>
       <div class="row">
-        <button class="btn primary" id="readBtn" type="button">Read my card</button>
+        <button class="btn primary" id="readBtn" type="button">Read my coverage</button>
         <button class="btn ghost" id="stopBtn" type="button" hidden>Stop</button>
       </div>
       <div class="status" id="status" hidden></div>
-      <p class="note">Photos are sent to Claude only to read this card and are not stored. Your member ID is masked on screen.</p>
+      <p class="note">Files are sent to Claude only to read your coverage and are not stored. Your member ID is masked on screen.</p>
     </section>
 
     <section class="results" aria-live="polite" id="results"></section>
@@ -156,16 +182,16 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
       <button class="chip" type="button">How much would an ER visit cost me?</button>
       <button class="chip" type="button">Do I need a referral to see a specialist?</button>
       <button class="chip" type="button">What's the difference between my deductible and out-of-pocket max?</button>
-      <button class="chip" type="button">How do I find an in-network doctor?</button>
+      <button class="chip" type="button">Is an MRI covered, and does it need prior approval?</button>
     </div>
     <div class="chat" id="chat"></div>
     <form class="row" id="askForm">
-      <input type="text" id="askInput" placeholder="Ask anything about this card" style="flex:1;min-width:0" aria-label="Your question">
+      <input type="text" id="askInput" placeholder="Ask anything about your coverage" style="flex:1;min-width:0" aria-label="Your question">
       <button class="btn primary" id="askBtn" type="submit">Ask</button>
     </form>
   </section>
 
-  <p class="disclaimer">CareCard explains what's printed on your card. It isn't your insurer and can't confirm coverage, eligibility or what a specific provider will bill. Always verify with the member services number on your card before a big appointment or procedure.</p>
+  <p class="disclaimer">CareCard explains what's printed on your card and in the documents you upload. It isn't your insurer and can't confirm coverage, eligibility or what a specific provider will bill. Always verify with the member services number on your card before a big appointment or procedure.</p>
 </div>
 
 <script>
@@ -187,6 +213,16 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
       {title:"Use urgent care instead of the ER when it's not an emergency",detail:"Your ER copay ($350) is almost 5x urgent care ($75). For sprains, fevers or minor cuts, urgent care is the cheaper in-network option.",priority:"medium",category:"Save money"},
       {title:"Give your pharmacy the Rx BIN, PCN and group",detail:"Pharmacies bill prescriptions with these three codes, not your medical member ID. Keep a photo of the back of the card handy.",priority:"medium",category:"Prescriptions"},
       {title:"Confirm doctors are in the Open Access Network",detail:"PPO out-of-network visits are covered at a lower rate and can be balance-billed. Check the provider directory or call before a first visit.",priority:"low",category:"Stay in network"}],
+    coverage:{source:"Summary of Benefits and Coverage (example)",
+      services:[
+        {service:"Primary care visit",inNetwork:"$30 copay",outOfNetwork:"50% coinsurance",notes:"Deductible does not apply",priorAuth:false},
+        {service:"Specialist visit",inNetwork:"$60 copay",outOfNetwork:"50% coinsurance",notes:"No referral needed",priorAuth:false},
+        {service:"MRI / CT / PET scan",inNetwork:"20% after deductible",outOfNetwork:"50% after deductible",notes:"",priorAuth:true},
+        {service:"Emergency room",inNetwork:"$350 copay",outOfNetwork:"$350 copay",notes:"Copay waived if admitted",priorAuth:false},
+        {service:"Generic drugs (Tier 1)",inNetwork:"$10 copay",outOfNetwork:"Not covered",notes:"30-day retail supply",priorAuth:false},
+        {service:"Physical therapy",inNetwork:"$40 copay",outOfNetwork:"50% coinsurance",notes:"Limited to 20 visits per year",priorAuth:false}],
+      notCovered:["Cosmetic surgery","Long-term care","Routine eye care (adult)","Weight loss programs"],
+      watchOut:["Imaging needs prior approval or the claim can be denied","Out-of-network providers can bill you the difference (balance billing)"]},
     questionsForInsurer:["Is an MRI subject to the deductible or a flat copay?","Does this plan require prior authorization for imaging?","Which in-network pharmacy has the lowest cost for my prescription?"],
     missing:[]
   };
@@ -214,7 +250,7 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
 
     let html = "";
     html += `<div class="row" style="justify-content:space-between">
-      <h2>${d.example ? "Example reading" : "What your card says"}</h2>
+      <h2>${d.example ? "Example reading" : "Your coverage"}</h2>
       ${d.example ? '<span class="tag">Example data, not yours</span>' : ""}</div>`;
 
     html += `<div class="icard" role="img" aria-label="Digital copy of the insurance card">
@@ -249,6 +285,26 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
     if(has(c.website)) html += `<dt>Website</dt><dd>${esc(c.website)}</dd>`;
     if(!has(rx.bin)&&!phones.length&&!has(c.website)) html += `<dt>—</dt><dd>Upload the back of the card</dd>`;
     html += `</dl></div></div>`;
+
+    const cov = d.coverage;
+    const svc = cov && Array.isArray(cov.services) ? cov.services.filter(x=>x && has(x.service)) : [];
+    if(svc.length){
+      html += `<div class="panel" style="gap:12px"><div><h3>What's covered</h3>${has(cov.source)?`<p class="note">From: ${esc(cov.source)}</p>`:""}</div>
+        <div class="tablewrap"><table class="cov"><thead><tr><th>Service</th><th>In network</th><th>Out of network</th><th>Notes</th></tr></thead><tbody>`;
+      svc.forEach(x=>{
+        html += `<tr><td>${esc(x.service)}</td><td class="money">${esc(has(x.inNetwork)?x.inNetwork:"—")}</td><td class="money">${esc(has(x.outOfNetwork)?x.outOfNetwork:"—")}</td>
+          <td>${esc(x.notes||"")}${x.priorAuth===true?`${has(x.notes)?"<br>":""}<span class="pa">Prior approval</span>`:""}</td></tr>`;
+      });
+      html += `</tbody></table></div></div>`;
+    }
+    const nc = cov && Array.isArray(cov.notCovered) ? cov.notCovered.filter(has) : [];
+    const wo = cov && Array.isArray(cov.watchOut) ? cov.watchOut.filter(has) : [];
+    if(nc.length || wo.length){
+      html += `<div class="cols">`;
+      if(nc.length) html += `<div class="panel"><h3>Not covered</h3><ul class="plain nc">${nc.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`;
+      if(wo.length) html += `<div class="panel"><h3>Limits &amp; watch-outs</h3><ul class="plain">${wo.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`;
+      html += `</div>`;
+    }
 
     if(recs.length){
       html += `<div class="panel" style="gap:12px"><h3>Recommendations</h3><ul class="recs">`;
@@ -335,6 +391,54 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
     });
   }
 
+  // Coverage document: one PDF, or up to 6 photos of pages
+  let doc = null;
+  const MAX_DOC_IMAGES = 6;
+  if(window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js";
+  function setDoc(list){
+    const arr = Array.from(list||[]);
+    const pdf = arr.find(f=>f.type==="application/pdf" || /\.pdf$/i.test(f.name));
+    const imgs = arr.filter(f=>f.type.startsWith("image/")).slice(0, MAX_DOC_IMAGES);
+    if(pdf) doc = {pdf};
+    else if(imgs.length) doc = {images: imgs};
+    else return;
+    $("docLabel").textContent = pdf ? pdf.name : `${imgs.length} page photo${imgs.length>1?"s":""}` + (arr.length>MAX_DOC_IMAGES?` (first ${MAX_DOC_IMAGES} used)`:"");
+    $("docBox").classList.add("filled"); $("docClear").hidden = false;
+  }
+  $("fileDoc").addEventListener("change", e=> setDoc(e.target.files));
+  ["dragenter","dragover"].forEach(t=>$("docBox").addEventListener(t,e=>{e.preventDefault();$("docBox").classList.add("over");}));
+  ["dragleave","drop"].forEach(t=>$("docBox").addEventListener(t,e=>{e.preventDefault();$("docBox").classList.remove("over");}));
+  $("docBox").addEventListener("drop", e=> setDoc(e.dataTransfer.files));
+  $("docClear").onclick = e=>{ e.preventDefault(); e.stopPropagation(); doc=null; $("fileDoc").value="";
+    $("docLabel").textContent="Your Summary of Benefits and Coverage (SBC) PDF, or photos of its pages";
+    $("docBox").classList.remove("filled"); $("docClear").hidden = true; };
+
+  function fileToBase64(file){
+    return new Promise((resolve,reject)=>{ const r=new FileReader(); r.onload=()=>resolve(String(r.result).split(",")[1]); r.onerror=()=>reject({code:"doc_unreadable"}); r.readAsDataURL(file); });
+  }
+  const MAX_DOC_CHARS = 60000;
+  async function prepareDoc(){
+    if(!doc) return null;
+    if(doc.images) return { kind:"images", images: await Promise.all(doc.images.map(f=>toJpeg(f))) };
+    // PDF: pull the text out in the browser (smaller and cheaper), fall back to sending the file for scanned PDFs
+    let text = "", pages = 0;
+    if(window.pdfjsLib){
+      try{
+        const pdf = await pdfjsLib.getDocument({data: await doc.pdf.arrayBuffer()}).promise;
+        pages = pdf.numPages;
+        for(let i=1;i<=pdf.numPages && text.length < MAX_DOC_CHARS;i++){
+          const tc = await (await pdf.getPage(i)).getTextContent();
+          text += `\n--- Page ${i} ---\n` + tc.items.map(it=>it.str + (it.hasEOL?"\n":" ")).join("");
+        }
+      }catch(_){ text = ""; }
+    }
+    if(text.replace(/\s|---|Page \d+/g,"").length > 300){
+      return { kind:"text", text: text.slice(0, MAX_DOC_CHARS), name: doc.pdf.name, truncated: text.length > MAX_DOC_CHARS, pages };
+    }
+    if(doc.pdf.size <= 2.5*1024*1024) return { kind:"pdf", data: await fileToBase64(doc.pdf), name: doc.pdf.name };
+    throw {code:"doc_scanned_large"};
+  }
+
   async function post(path, body, signal){
     let res;
     try{
@@ -358,6 +462,8 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
       invalid_json:"The reading came back incomplete. Press Read my card again.",
       network:"Couldn't reach the server. Check your connection and try again.",
       bad_request: message || "Something was missing from the request.",
+      doc_scanned_large:"That PDF is a scan and too large to send. Upload photos of the benefit pages instead (up to 6).",
+      doc_unreadable:"That document couldn't be opened. Try a different PDF, or photos of the pages.",
     })[code] || "Something went wrong reading the card. Try again in a moment.";
   }
 
@@ -365,14 +471,15 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
     const typed = $("typed").value.trim();
     const ctx = $("context").value.trim();
     const imgs = [files.front, files.back].filter(Boolean);
-    if(!imgs.length && !typed){ setStatus("Add a photo of the front of your card, or type what it says.", true); return; }
+    if(!imgs.length && !typed && !doc){ setStatus("Add a photo of your card, your coverage document, or type what your card says.", true); return; }
 
     $("readBtn").disabled = true; $("stopBtn").hidden = false;
-    setStatus("Reading your card… this usually takes 10–30 seconds.");
+    setStatus(doc ? "Reading your card and coverage document… this can take up to a minute." : "Reading your card… this usually takes 10–30 seconds.");
     ctl = new AbortController();
     try{
       const images = await Promise.all(imgs.map(f=>toJpeg(f)));
-      const data = await post("/api/read", { images, typed, context: ctx }, ctl.signal);
+      const docPayload = await prepareDoc();
+      const data = await post("/api/read", { images, typed, context: ctx, doc: docPayload }, ctl.signal);
       if(!data || typeof data !== "object") throw {code:"invalid_json"};
       if(data.readable === false){
         setStatus(data.issue || "That doesn't look like a readable insurance card. Try a sharper, flat photo.", true);
@@ -410,7 +517,7 @@ body{margin:0;padding-top:max(28px,env(safe-area-inset-top));padding-bottom:max(
     chatTurns.push({role:"user", content:q});
     const card = {...(current.card||{}), memberId: current.card && current.card.memberId ? "[on file]" : ""};
     try{
-      const { text } = await post("/api/ask", { card, planSummary: current.planSummary || "", example: !!current.example, messages: chatTurns.slice(-8) });
+      const { text } = await post("/api/ask", { card, coverage: current.coverage || null, planSummary: current.planSummary || "", example: !!current.example, messages: chatTurns.slice(-8) });
       bubble.textContent = text;
       chatTurns.push({role:"assistant", content:text});
     }catch(e){

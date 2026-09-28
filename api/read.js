@@ -18,6 +18,12 @@ const SCHEMA = `{
     "website": ""
   },
   "planSummary": "2-3 plain sentences on how this plan works for the member",
+  "coverage": {
+    "source": "document title, e.g. Summary of Benefits and Coverage 2026",
+    "services": [{"service": "Specialist visit", "inNetwork": "$50 copay", "outOfNetwork": "40% after deductible", "notes": "short limit or condition", "priorAuth": false}],
+    "notCovered": ["..."],
+    "watchOut": ["limits, visit caps, waiting periods, referral rules, fixed-indemnity or short-term plan warnings"]
+  },
   "recommendations": [{"title": "", "detail": "1-3 sentences, specific to this card", "priority": "high | medium | low", "category": "Save money | Stay in network | Prescriptions | Paperwork | Coverage check"}],
   "questionsForInsurer": ["..."],
   "missing": ["fields a typical card has that this one doesn't show"]
@@ -31,7 +37,9 @@ Tasks:
 3. Write a planSummary in plain English for someone who finds insurance confusing.
 4. Give 4-6 practical recommendations tailored to THIS card (its copay spread, plan type rules like referrals for HMO, HSA if HDHP, Rx codes, network name, telehealth if listed). Mark priority high only for things that can save real money or avoid a denied claim.
 5. Give 3-5 questions to ask member services.
-If the input is not an insurance card or is unreadable, set "readable": false and explain in "issue".
+6. If a coverage document is provided: fill "coverage" with 8-15 of the most useful services (doctor visits, specialist, urgent care, ER, hospital stay, imaging, lab, generic and brand drugs, mental health, maternity, physical therapy, preventive care, plus anything the person mentioned). Copy costs exactly as written. Set priorAuth true only when the document says preauthorization/prior approval is required. Also fill card.deductible and card.outOfPocketMax from the document when the card lacks them. If the document shows this is a fixed-indemnity, limited-benefit or short-term plan rather than ACA major medical, say so clearly in planSummary and add a high-priority recommendation. Base recommendations on the document too.
+   If no coverage document is provided, set "coverage": null.
+If the input is not an insurance card or coverage document, or is unreadable, set "readable": false and explain in "issue".
 
 Reply with only JSON in this shape, no other text:
 ${SCHEMA}`;
@@ -44,8 +52,9 @@ module.exports = async function handler(req, res) {
     const images = Array.isArray(body.images) ? body.images.slice(0, 2) : [];
     const typed = String(body.typed || "").slice(0, 4000);
     const context = String(body.context || "").slice(0, 1000);
+    const doc = body.doc && typeof body.doc === "object" ? body.doc : null;
 
-    if (!images.length && !typed.trim()) {
+    if (!images.length && !typed.trim() && !doc) {
       return res.status(400).json({ code: "bad_request", error: "Add a photo of your card or type what it says." });
     }
     for (const img of images) {
@@ -55,16 +64,30 @@ module.exports = async function handler(req, res) {
     }
 
     const content = [];
+    let docNote = "";
+    if (doc) {
+      if (doc.kind === "text" && typeof doc.text === "string") {
+        docNote = `\n\nMy coverage document${doc.name ? ` (${String(doc.name).slice(0, 120)})` : ""}${doc.truncated ? ", first part only" : ""}:\n<document>\n${doc.text.slice(0, 60000)}\n</document>`;
+      } else if (doc.kind === "pdf" && typeof doc.data === "string") {
+        content.push({ type: "document", source: { type: "base64", media_type: "application/pdf", data: doc.data } });
+        docNote = "\n\nThe attached PDF is my coverage document.";
+      } else if (doc.kind === "images" && Array.isArray(doc.images)) {
+        const pages = doc.images.slice(0, 6).filter((img) => img && ALLOWED.includes(img.media_type) && typeof img.data === "string");
+        pages.forEach((img) => content.push({ type: "image", source: { type: "base64", media_type: img.media_type, data: img.data } }));
+        docNote = `\n\nThe first ${pages.length} image(s) are pages of my coverage document.`;
+      }
+    }
     images.forEach((img) => content.push({ type: "image", source: { type: "base64", media_type: img.media_type, data: img.data } }));
 
     let text = images.length
-      ? `Attached ${images.length === 2 ? "are the front and back" : "is one side"} of my health insurance card.`
-      : `Here is what my insurance card says:\n${typed}`;
+      ? `The ${doc && doc.kind === "images" ? "last" : ""} ${images.length === 2 ? "two images are the front and back" : "image is one side"} of my health insurance card.`.replace("The  ", "The ")
+      : typed.trim() ? `Here is what my insurance card says:\n${typed}` : "I don't have my card handy, only the coverage document.";
+    text += docNote;
     if (images.length && typed.trim()) text += `\n\nI also typed this from the card:\n${typed}`;
     if (context.trim()) text += `\n\nWhat's coming up for me: ${context}\nTailor the recommendations to this.`;
     content.push({ type: "text", text });
 
-    const reply = await callClaude({ system: SYSTEM, messages: [{ role: "user", content }], maxTokens: 2500 });
+    const reply = await callClaude({ system: SYSTEM, messages: [{ role: "user", content }], maxTokens: doc ? 5000 : 2500 });
     const data = parseJson(reply);
     if (!data) return res.status(502).json({ code: "invalid_json", error: "Could not parse the reading." });
 

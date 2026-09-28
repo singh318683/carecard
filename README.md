@@ -22,6 +22,7 @@ vercel.json         gives the API functions up to 60 s
 ## Notes
 
 - Photos are resized in the browser (max 1568 px, JPEG) before upload, which keeps them under Vercel's 4.5 MB request limit.
+- Coverage documents: text PDFs are read in the browser with pdf.js and sent as text (cheap). Scanned PDFs under 2.5 MB are sent as the file; bigger scans need page photos (up to 6).
 - Nothing is stored. Images go from the browser to the function to the Claude API and are discarded.
 - The member ID is masked on screen and never sent with follow-up questions.
 - Anyone with the link spends your API credit. Before sharing widely, add rate limiting or a login, and set a spend limit in the Anthropic console.
