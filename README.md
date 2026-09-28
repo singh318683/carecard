@@ -1,20 +1,28 @@
-# CareCard: prototype
+# CareCard
 
-CareCard is a health insurance paperwork copilot. This investor demo is a working web prototype.
+Upload a photo of your health insurance card. Claude reads it, lays out copays, deductible, Rx BIN/PCN/group and phone numbers, and gives plan-specific recommendations. There is also a box for follow-up questions.
 
-## What it does
-- **Family cards**: scan an insurance card photo. On-device OCR (Tesseract.js) reads the payer, plan type, member ID, group number, and RxBIN.
-- **Verify**: a call script for the doctor's office, plus a saved proof receipt with the date, the staff member's name, and a reference number.
-- **Bills**: compares the bill to the EOB line by line. It flags duplicate charges, amounts above what the EOB says you owe, and out-of-network processing that contradicts a logged call.
-- **Appeals**: drafts an appeal letter with the proof attached, shows the deadline, and lets you copy, download, or print it.
+## Structure
 
-## Tech
-Static HTML, CSS, and JS. No build step and no backend. Data is stored in the browser's localStorage. Card photos are read in the browser and never uploaded.
+```
+public/index.html   the whole front end (no build step)
+api/read.js         POST /api/read: reads the card photo(s)
+api/ask.js          POST /api/ask: answers follow-up questions
+api/_claude.js      shared Claude API helper (not a route)
+vercel.json         gives the API functions up to 60 s
+```
 
-## Run locally
-Open `index.html`, or run `python -m http.server` in this folder.
+## Deploy on Vercel
 
-## Deploy
-Push this folder to a GitHub repo and import it in Vercel. Set Framework Preset to "Other"; no build command is needed.
+1. Import this GitHub repo in Vercel (Framework preset: **Other**, no build command).
+2. In **Settings → Environment Variables**, add `ANTHROPIC_API_KEY` with a key from https://console.anthropic.com.
+   You can also set `CLAUDE_MODEL` (default `claude-sonnet-5`).
+3. Redeploy.
 
-Prototype by Ikshana Solutions LLC. Not medical, legal, or financial advice.
+## Notes
+
+- Photos are resized in the browser (max 1568 px, JPEG) before upload, which keeps them under Vercel's 4.5 MB request limit.
+- Nothing is stored. Images go from the browser to the function to the Claude API and are discarded.
+- The member ID is masked on screen and never sent with follow-up questions.
+- Anyone with the link spends your API credit. Before sharing widely, add rate limiting or a login, and set a spend limit in the Anthropic console.
+- iPhone HEIC photos only open in Safari. In other browsers, upload a JPG or a screenshot.

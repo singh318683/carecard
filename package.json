@@ -1,0 +1,7 @@
+{
+  "name": "carecard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Upload a health insurance card, get a plain-English read on the plan and recommendations.",
+  "engines": { "node": ">=18" }
+}
