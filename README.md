@@ -33,5 +33,6 @@ vercel.json         function time limits (read 300 s, bill 180 s, others 60 s)
 - Provider search runs one Google Places Text Search per category tap (about $0.035 each after 1,000 free per month). Results are cached for an hour per location, radius and category.
 - Each provider result gets an NPI number from the CMS NPI Registry (free, no key), matched by name plus ZIP ("exact") or city ("likely").
 - Bill check: PDFs are sent as text when possible; about 2-5 cents per check with Sonnet 5. It is a guide, not a billing determination.
+- Bill review PDF and dispute letter PDF are generated in the browser with jsPDF (no extra API call).
 - Demo kit: a fictional card, plan summary, itemized hospital bill with planted overcharges, and EOB are available separately (carecard-demo-kit.zip).
 - iPhone HEIC photos only open in Safari. In other browsers, upload a JPG or a screenshot.

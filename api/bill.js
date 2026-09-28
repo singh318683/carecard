@@ -7,7 +7,8 @@ const ALLOWED = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
 const SCHEMA = `{
   "documentType": "Itemized bill | Statement | Payment receipt | Explanation of Benefits (EOB) | Other",
-  "provider": "", "patient": "", "dateOfService": "", "serviceType": "",
+  "provider": "", "providerAddress": "", "patient": "", "dateOfService": "", "serviceType": "",
+  "accountNumber": "provider account/statement number if shown", "claimNumber": "insurer claim number if shown",
   "lines": [{"description": "", "code": "CPT/HCPCS code if shown", "billed": "", "insurancePaid": "", "youOwe": ""}],
   "totals": {"billed": "", "adjustments": "", "insurancePaid": "", "youOwe": "", "youPaid": ""},
   "billedToPatient": 0,
