@@ -1,6 +1,8 @@
 {
   "functions": {
     "api/read.js": { "maxDuration": 300 },
-    "api/ask.js": { "maxDuration": 60 }
+    "api/bill.js": { "maxDuration": 180 },
+    "api/ask.js": { "maxDuration": 60 },
+    "api/providers.js": { "maxDuration": 60 }
   }
 }

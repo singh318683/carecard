@@ -151,6 +151,20 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
 .prov .links{display:flex;gap:12px;flex-wrap:wrap;font-size:13.5px;margin-top:4px}
 .prov .links a{color:var(--accent);font-weight:600;text-decoration:none}
 .prov .links a:hover{text-decoration:underline}
+.billres{display:flex;flex-direction:column;gap:16px}
+.billres:empty{display:none}
+.verdict{display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:start;border-radius:12px;padding:14px 16px}
+.verdict .vi{font:700 13px/1 var(--mono);border-radius:999px;width:30px;height:30px;display:flex;align-items:center;justify-content:center}
+.verdict h3{margin-bottom:2px}
+.v-looks_right{background:var(--accent-soft)} .v-looks_right .vi{background:var(--accent);color:var(--accent-ink)}
+.v-needs_check,.v-cannot_verify{background:var(--med-soft)} .v-needs_check .vi,.v-cannot_verify .vi{background:var(--med);color:var(--surface)}
+.v-possible_error{background:var(--high-soft)} .v-possible_error .vi{background:var(--high);color:var(--surface)}
+.checks{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:8px}
+.checks li{display:grid;grid-template-columns:22px 1fr;gap:10px;align-items:start}
+.checks .ic{font:700 12px/22px var(--mono);text-align:center;border-radius:6px;height:22px}
+.s-pass .ic{background:var(--accent-soft);color:var(--accent)} .s-warn .ic{background:var(--med-soft);color:var(--med)}
+.s-fail .ic{background:var(--high-soft);color:var(--high)} .s-unknown .ic{background:var(--surface-2);color:var(--ink-2)}
+.script{background:var(--surface-2);border-radius:10px;padding:12px 14px;font-size:14.5px;white-space:pre-wrap}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 </head>
@@ -199,6 +213,27 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
 
     <section class="results" aria-live="polite" id="results"></section>
   </div>
+
+  <section class="panel" id="billPanel" aria-labelledby="bill-h">
+    <div><h2 id="bill-h">Check a bill</h2>
+    <p class="note">Upload a medical bill, statement, receipt or Explanation of Benefits (EOB). It's checked against the card and coverage above. For the best check, add both the bill and the insurer's EOB for the same visit.</p></div>
+    <div class="docbox" id="billBox">
+      <input type="file" id="fileBill" accept="application/pdf,image/*" multiple aria-label="Upload bill, receipt or EOB">
+      <div class="docicon" aria-hidden="true">BILL</div>
+      <div><div class="lbl">Bill, receipt or EOB</div>
+      <div class="sub" id="billLabel">PDF or photos, up to 6 files</div></div>
+      <button type="button" class="clear" id="billClear" hidden aria-label="Remove bill files">×</button>
+    </div>
+    <label class="field"><span>What was this visit for? <span class="muted" style="font-weight:400">(optional)</span></span>
+      <input type="text" id="billNote" placeholder="e.g. bloodwork from my annual physical">
+    </label>
+    <div class="row">
+      <button class="btn primary" id="billBtn" type="button">Check this bill</button>
+      <button class="btn ghost" id="billStop" type="button" hidden>Stop</button>
+    </div>
+    <div class="status" id="billStatus" hidden></div>
+    <div id="billResult" class="billres"></div>
+  </section>
 
   <section class="panel" id="findPanel" aria-labelledby="find-h">
     <div class="findhead">
@@ -578,6 +613,113 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
   $("askForm").addEventListener("submit", e=>{ e.preventDefault(); const v=$("askInput").value; $("askInput").value=""; ask(v); });
   $("chips").addEventListener("click", e=>{ if(e.target.classList.contains("chip")) ask(e.target.textContent); });
 
+
+  // ---------- Bill check ----------
+  let billFiles = [], billCtl = null;
+  function setBillFiles(list){
+    const arr = Array.from(list||[]).filter(f=>f.type==="application/pdf" || /\.pdf$/i.test(f.name) || f.type.startsWith("image/")).slice(0,6);
+    if(!arr.length) return;
+    billFiles = arr;
+    $("billLabel").textContent = arr.length===1 ? arr[0].name : `${arr.length} files: ` + arr.map(f=>f.name).join(", ");
+    $("billBox").classList.add("filled"); $("billClear").hidden = false;
+  }
+  $("fileBill").addEventListener("change", e=> setBillFiles(e.target.files));
+  ["dragenter","dragover"].forEach(t=>$("billBox").addEventListener(t,e=>{e.preventDefault();$("billBox").classList.add("over");}));
+  ["dragleave","drop"].forEach(t=>$("billBox").addEventListener(t,e=>{e.preventDefault();$("billBox").classList.remove("over");}));
+  $("billBox").addEventListener("drop", e=> setBillFiles(e.dataTransfer.files));
+  $("billClear").onclick = e=>{ e.preventDefault(); e.stopPropagation(); billFiles=[]; $("fileBill").value="";
+    $("billLabel").textContent="PDF or photos, up to 6 files"; $("billBox").classList.remove("filled"); $("billClear").hidden = true; };
+
+  async function pdfText(file){
+    if(!window.pdfjsLib) return "";
+    try{
+      const pdf = await pdfjsLib.getDocument({data: await file.arrayBuffer()}).promise;
+      let text = "";
+      for(let i=1;i<=pdf.numPages && text.length < 30000;i++){
+        const tc = await (await pdf.getPage(i)).getTextContent();
+        text += `\n--- Page ${i} ---\n` + tc.items.map(it=>it.str + (it.hasEOL?"\n":" ")).join("");
+      }
+      return text;
+    }catch(_){ return ""; }
+  }
+  async function prepareBillFiles(){
+    const out = [];
+    for(const f of billFiles){
+      if(f.type.startsWith("image/")){ const j = await toJpeg(f); out.push({kind:"image", ...j}); continue; }
+      const text = await pdfText(f);
+      if(text.replace(/\s|---|Page \d+/g,"").length > 100) out.push({kind:"text", text, name:f.name});
+      else if(f.size <= 1.5*1024*1024) out.push({kind:"pdf", data: await fileToBase64(f), name:f.name});
+      else throw {code:"doc_scanned_large"};
+    }
+    return out;
+  }
+
+  function setBill(msg, err){ const s=$("billStatus"); if(!msg){ s.hidden=true; return; } s.hidden=false; s.textContent=msg; s.classList.toggle("err", !!err); }
+
+  async function checkBill(){
+    if(!billFiles.length){ setBill("Add a bill, receipt or EOB first.", true); return; }
+    $("billBtn").disabled = true; $("billStop").hidden = false; $("billResult").innerHTML = "";
+    setBill(current.example ? "Checking… (you haven't read your own card yet, so the plan can't be compared)" : "Checking the bill against your plan… this can take up to a minute.");
+    billCtl = new AbortController();
+    try{
+      const files = await prepareBillFiles();
+      const card = {...(current.card||{})}; delete card.memberId;
+      const d = await post("/api/bill", { files, note: $("billNote").value.trim(), card, coverage: current.coverage || null, planSummary: current.planSummary || "", example: !!current.example }, billCtl.signal);
+      setBill(""); renderBill(d);
+    }catch(e){
+      if(e && e.code === "cancelled") setBill("Stopped.");
+      else setBill(copyFor(e && e.code, e && e.message), true);
+    }finally{ $("billBtn").disabled = false; $("billStop").hidden = true; }
+  }
+  $("billBtn").onclick = checkBill;
+  $("billStop").onclick = ()=> billCtl && billCtl.abort();
+
+  const VERDICT = {
+    looks_right:["✓","Looks right"], needs_check:["?","Plausible, but needs one more check"],
+    possible_error:["!","Possible billing error"], cannot_verify:["?","Can't verify against your plan yet"],
+  };
+  const ICON = {pass:"✓", warn:"!", fail:"✕", unknown:"?"};
+  function renderBill(d){
+    const v = VERDICT[d.verdict] ? d.verdict : "cannot_verify";
+    const t = d.totals || {};
+    const lines = (d.lines||[]).filter(l=>l && has(l.description));
+    let h = `<div class="verdict v-${v}"><span class="vi" aria-hidden="true">${VERDICT[v][0]}</span>
+      <div><h3>${VERDICT[v][1]}</h3><p>${esc(d.verdictReason||"")}</p></div></div>`;
+
+    h += `<div class="cols"><div class="panel"><h3>What the document says</h3><dl class="facts">`;
+    [["Type",d.documentType],["Provider",d.provider],["Patient",d.patient],["Date of service",d.dateOfService],["Service",d.serviceType],
+     ["Billed",t.billed],["Adjustments",t.adjustments],["Insurance paid",t.insurancePaid],["You owe",t.youOwe],["You paid",t.youPaid]]
+      .filter(([,x])=>has(x)).forEach(([k,x])=> h += `<dt>${esc(k)}</dt><dd>${esc(x)}</dd>`);
+    h += `</dl></div><div class="panel"><h3>What your plan says</h3><p>${esc(d.expected || "Not enough plan detail to compare.")}</p></div></div>`;
+
+    if(lines.length){
+      h += `<div class="tablewrap"><table class="cov"><thead><tr><th>Line</th><th>Code</th><th>Billed</th><th>Insurance paid</th><th>You owe</th></tr></thead><tbody>` +
+        lines.map(l=>`<tr><td>${esc(l.description)}</td><td class="money">${esc(l.code||"")}</td><td class="money">${esc(l.billed||"")}</td><td class="money">${esc(l.insurancePaid||"")}</td><td class="money">${esc(l.youOwe||"")}</td></tr>`).join("") +
+        `</tbody></table></div>`;
+    }
+    const checks = (d.checks||[]).filter(c=>c && has(c.label));
+    if(checks.length){
+      h += `<div><h3 style="margin-bottom:8px">Checks</h3><ul class="checks">` + checks.map(c=>{
+        const st = ICON[c.status] ? c.status : "unknown";
+        return `<li class="s-${st}"><span class="ic" aria-label="${st}">${ICON[st]}</span><div><strong>${esc(c.label)}</strong><div class="muted">${esc(c.detail||"")}</div></div></li>`;
+      }).join("") + `</ul></div>`;
+    }
+    const steps = (d.nextSteps||[]).filter(has), miss = (d.missingDocs||[]).filter(has);
+    if(steps.length || miss.length){
+      h += `<div class="cols">`;
+      if(steps.length) h += `<div class="panel"><h3>What to do</h3><ol class="qs">${steps.map(x=>`<li>${esc(x)}</li>`).join("")}</ol></div>`;
+      if(miss.length) h += `<div class="panel"><h3>Documents that would settle it</h3><ul class="plain">${miss.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`;
+      h += `</div>`;
+    }
+    if(has(d.callScript)){
+      h += `<div><div class="row" style="justify-content:space-between;margin-bottom:8px"><h3>What to say when you call</h3>
+        <button class="chip" type="button" id="copyScript">Copy</button></div><div class="script" id="scriptText">${esc(d.callScript)}</div></div>`;
+    }
+    h += `<p class="note">This is a guide, not a legal or billing determination. Your insurer's EOB is the final word on what you owe.</p>`;
+    $("billResult").innerHTML = h;
+    const cs = $("copyScript");
+    if(cs) cs.onclick = async ()=>{ try{ await navigator.clipboard.writeText(d.callScript); cs.textContent="Copied"; }catch(_){ const r=document.createRange(); r.selectNodeContents($("scriptText")); getSelection().removeAllRanges(); getSelection().addRange(r); } };
+  }
 
   // ---------- Provider finder ----------
   const NETWORK_DIRS = [
