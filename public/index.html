@@ -143,6 +143,11 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
 .stars .bar i{position:absolute;inset:0 auto 0 0;background:var(--med)}
 .prov .meta{font-size:13px;color:var(--ink-2)}
 .prov .open{color:var(--accent);font-weight:600}
+.prov .npi{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:13px}
+.prov .npi .k{font:600 10.5px/1 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.prov .npi code{font:500 13px/1 var(--mono);font-variant-numeric:tabular-nums;background:var(--surface-2);padding:4px 6px;border-radius:6px}
+.prov .copy{font:600 12px/1 var(--body);color:var(--accent);background:none;border:1px solid var(--line);border-radius:999px;padding:4px 9px;cursor:pointer}
+.prov .copy:hover{border-color:var(--accent)}
 .prov .links{display:flex;gap:12px;flex-wrap:wrap;font-size:13.5px;margin-top:4px}
 .prov .links a{color:var(--accent);font-weight:600;text-decoration:none}
 .prov .links a:hover{text-decoration:underline}
@@ -230,7 +235,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
     </form>
     <div class="status" id="findStatus" hidden></div>
     <div id="provList" class="provlist"></div>
-    <p class="note">Ratings come from Google reviews and reflect patient experience, not medical quality. A high rating doesn't mean a provider takes your plan: use "Check network" before booking.</p>
+    <p class="note">Ratings come from Google reviews and reflect patient experience, not medical quality. A high rating doesn't mean a provider takes your plan: copy the NPI and search it in your insurer's directory ("Check network") before booking. NPI numbers come from the CMS NPI Registry and are matched by name and address.</p>
   </section>
 
   <section class="panel" id="askPanel" aria-labelledby="ask-h">
@@ -657,13 +662,27 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
           <span class="meta">${esc(p.reviews.toLocaleString())} reviews</span></div>
         <div class="meta">${esc(p.miles)} mi · ${esc(p.address||"")}</div>
         <div class="meta">${p.phone?esc(p.phone):""}${p.openNow===true?`${p.phone?" · ":""}<span class="open">Open now</span>`:p.openNow===false?`${p.phone?" · ":""}Closed now`:""}</div>
+        ${p.npi ? `<div class="npi"><span class="k">NPI</span><code>${esc(p.npi.number)}</code>
+            <button class="copy" type="button" data-copy="${esc(p.npi.number)}" aria-label="Copy NPI ${esc(p.npi.number)}">Copy</button>
+            ${p.npi.match==="likely"?`<span class="meta" title="Name and city match, ZIP differs">likely match</span>`:""}</div>
+          ${p.npi.specialty?`<div class="meta">${esc(p.npi.specialty)}</div>`:""}`
+          : `<div class="meta">NPI not found automatically</div>`}
         <div class="links">
           ${p.maps?`<a href="${esc(p.maps)}" target="_blank" rel="noopener">Directions</a>`:""}
           ${p.website?`<a href="${esc(p.website)}" target="_blank" rel="noopener">Website</a>`:""}
           ${net?`<a href="${esc(net)}" target="_blank" rel="noopener">Check network</a>`:""}
+          ${p.npi?`<a href="https://npiregistry.cms.hhs.gov/provider-view/${esc(p.npi.number)}" target="_blank" rel="noopener">NPI record</a>`:""}
         </div>
       </article>`).join("");
   }
+
+  $("provList").addEventListener("click", async e=>{
+    const b = e.target.closest(".copy"); if(!b) return;
+    const v = b.dataset.copy;
+    try{ await navigator.clipboard.writeText(v); }
+    catch(_){ const r=document.createRange(); r.selectNodeContents(b.previousElementSibling); const sel=getSelection(); sel.removeAllRanges(); sel.addRange(r); }
+    b.textContent = "Copied"; setTimeout(()=>{ b.textContent = "Copy"; }, 1500);
+  });
 
   $("cats").addEventListener("click", e=>{ const b = e.target.closest(".chip"); if(b) findProviders({category:b.dataset.cat}); });
   $("customForm").addEventListener("submit", e=>{ e.preventDefault(); const q=$("customQ").value.trim(); if(q) findProviders({custom:q}); });

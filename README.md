@@ -10,6 +10,7 @@ api/read.js         POST /api/read: reads the card photo(s)
 api/ask.js          POST /api/ask: answers follow-up questions
 api/providers.js    POST /api/providers: top-rated providers near a ZIP (Google Places)
 api/_claude.js      shared Claude API helper (not a route)
+api/_npi.js         NPI lookup in the free CMS NPPES registry (not a route)
 vercel.json         gives the API functions up to 60 s
 ```
 
@@ -29,4 +30,5 @@ vercel.json         gives the API functions up to 60 s
 - The member ID is masked on screen and never sent with follow-up questions.
 - Anyone with the link spends your API credit. Before sharing widely, add rate limiting or a login, and set a spend limit in the Anthropic console.
 - Provider search runs one Google Places Text Search per category tap (about $0.035 each after 1,000 free per month). Results are cached for an hour per location, radius and category.
+- Each provider result gets an NPI number from the CMS NPI Registry (free, no key), matched by name plus ZIP ("exact") or city ("likely").
 - iPhone HEIC photos only open in Safari. In other browsers, upload a JPG or a screenshot.

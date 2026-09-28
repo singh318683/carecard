@@ -1,6 +1,8 @@
 // POST /api/providers  { zip?: "72201", lat?: number, lng?: number, radiusMiles: number, category: string, custom?: string }
 // Finds the highest-rated providers of one category within the radius, using Google Places (New) Text Search.
 
+const { lookupNpi } = require("./_npi");
+
 const CATEGORIES = {
   primary: "primary care doctor",
   urgent: "urgent care clinic",
@@ -114,6 +116,11 @@ module.exports = async function handler(req, res) {
       .filter((p) => p.name && p.miles <= radiusMiles && p.rating)
       .sort((a, b) => score(b.rating, b.reviews) - score(a.rating, a.reviews))
       .slice(0, 6);
+
+    // Add NPI numbers from the free CMS registry (in parallel; a miss just leaves npi null).
+    await Promise.all(results.map(async (p) => {
+      try { p.npi = await lookupNpi(p); } catch (_) { p.npi = null; }
+    }));
 
     const data = { origin: origin.label, radiusMiles, query, results };
     cache.set(cacheKey, { at: Date.now(), data });
