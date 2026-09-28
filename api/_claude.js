@@ -4,7 +4,9 @@
 const API_URL = "https://api.anthropic.com/v1/messages";
 const MODEL = process.env.CLAUDE_MODEL || "claude-sonnet-5";
 
-async function callClaude({ system, messages, maxTokens = 2000 }) {
+// Sonnet 5 "thinks" by default and thinking counts against max_tokens, so every call sets
+// an effort level and leaves generous room. thinking:false turns thinking off (simple tasks).
+async function callClaude({ system, messages, maxTokens = 4000, effort = "medium", thinking = true }) {
   const key = process.env.ANTHROPIC_API_KEY;
   if (!key) {
     const err = new Error("ANTHROPIC_API_KEY is not set");
@@ -20,7 +22,13 @@ async function callClaude({ system, messages, maxTokens = 2000 }) {
       "x-api-key": key,
       "anthropic-version": "2023-06-01",
     },
-    body: JSON.stringify({ model: MODEL, max_tokens: maxTokens, system, messages }),
+    body: JSON.stringify({
+      model: MODEL,
+      max_tokens: maxTokens,
+      system,
+      messages,
+      ...(thinking ? { output_config: { effort } } : { thinking: { type: "disabled" } }),
+    }),
   });
 
   const data = await res.json().catch(() => null);

@@ -88,7 +88,7 @@ module.exports = async function handler(req, res) {
     if (context.trim()) text += `\n\nWhat's coming up for me: ${context}\nTailor the recommendations to this.`;
     content.push({ type: "text", text });
 
-    const { text: reply, stopReason } = await callClaude({ system: SYSTEM, messages: [{ role: "user", content }], maxTokens: doc ? 12000 : 4000 });
+    const { text: reply, stopReason } = await callClaude({ system: SYSTEM, messages: [{ role: "user", content }], maxTokens: doc ? 24000 : 12000, effort: doc ? "medium" : "low" });
     let data = parseJson(reply);
 
     if (!data) {
@@ -101,6 +101,7 @@ module.exports = async function handler(req, res) {
         system: "Convert the text you are given into one valid JSON object that follows the same structure. Fix quoting and escaping, drop anything outside the object. Reply with only the JSON.",
         messages: [{ role: "user", content: reply.slice(0, 60000) }],
         maxTokens: 12000,
+        thinking: false,
       });
       data = parseJson(fix.text);
       if (!data) return res.status(502).json({ code: "invalid_json", error: "Could not parse the reading." });

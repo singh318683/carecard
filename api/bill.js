@@ -77,7 +77,7 @@ module.exports = async function handler(req, res) {
     if (body.note) text += `\n\nWhat I know about this visit: ${String(body.note).slice(0, 1000)}`;
     content.push({ type: "text", text });
 
-    const { text: reply, stopReason } = await callClaude({ system: SYSTEM, messages: [{ role: "user", content }], maxTokens: 6000 });
+    const { text: reply, stopReason } = await callClaude({ system: SYSTEM, messages: [{ role: "user", content }], maxTokens: 24000, effort: "medium" });
     let data = parseJson(reply);
     if (!data) {
       console.error("Unparseable bill reply", { stopReason, start: reply.slice(0, 300) });
@@ -85,7 +85,8 @@ module.exports = async function handler(req, res) {
       const fix = await callClaude({
         system: "Convert the text you are given into one valid JSON object with the same structure. Reply with only the JSON.",
         messages: [{ role: "user", content: reply.slice(0, 40000) }],
-        maxTokens: 6000,
+        maxTokens: 8000,
+        thinking: false,
       });
       data = parseJson(fix.text);
       if (!data) return res.status(502).json({ code: "invalid_json", error: "Could not parse the bill check." });
