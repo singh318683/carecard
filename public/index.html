@@ -84,9 +84,9 @@ textarea:focus,input[type=text]:focus{outline:2px solid var(--accent);outline-of
 .icard .bottom{font-size:12px;opacity:.85;display:flex;justify-content:space-between;gap:8px;flex-wrap:wrap}
 .results{display:flex;flex-direction:column;gap:20px}
 .cols{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px}
-dl.facts{margin:0;display:grid;grid-template-columns:auto 1fr;gap:6px 14px;font-size:14px}
+dl.facts{margin:0;display:grid;grid-template-columns:minmax(88px,44%) minmax(0,1fr);gap:8px 14px;font-size:14px}
 dl.facts dt{color:var(--ink-2)}
-dl.facts dd{margin:0;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;word-break:break-word}
+dl.facts dd{margin:0;font-family:var(--mono);font-size:13px;font-variant-numeric:tabular-nums;overflow-wrap:break-word;min-width:0}
 .recs{display:flex;flex-direction:column;gap:10px;list-style:none;margin:0;padding:0}
 .rec{display:grid;grid-template-columns:6px 1fr;gap:14px;background:var(--surface);border:1px solid var(--line);border-radius:12px;padding:14px 16px 14px 0;overflow:hidden}
 .rec .stripe{border-radius:0 4px 4px 0}
@@ -107,6 +107,48 @@ ol.qs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 .disclaimer{font-size:13px;color:var(--ink-2);border-top:1px solid var(--line);padding-top:16px;max-width:760px}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;animation:none!important}}
 [hidden]{display:none!important}
+/* App shell */
+.appbar{position:sticky;top:0;z-index:20;background:color-mix(in srgb,var(--bg) 88%,transparent);backdrop-filter:blur(10px);-webkit-backdrop-filter:blur(10px);border-bottom:1px solid var(--line);padding-top:env(safe-area-inset-top,0px);margin-inline:-16px;margin-top:-28px;margin-bottom:24px}
+.appbar-in{max-width:1080px;margin:0 auto;padding:10px 16px;display:flex;align-items:center;gap:16px}
+.brand{display:flex;align-items:center;gap:9px;font:700 19px/1 var(--display);color:var(--ink);text-decoration:none;letter-spacing:-.01em}
+.brand i{width:26px;height:18px;border-radius:5px;background:linear-gradient(135deg,var(--card-a),var(--card-b));position:relative;display:inline-block}
+.brand i:after{content:"";position:absolute;left:4px;right:9px;bottom:4px;height:2px;border-radius:2px;background:var(--card-ink);opacity:.8}
+.toptabs{display:flex;gap:4px;margin-left:8px}
+.tt{display:flex;align-items:center;gap:7px;padding:8px 12px;border-radius:999px;color:var(--ink-2);text-decoration:none;font-weight:600;font-size:14.5px}
+.tt svg,.bt svg{width:18px;height:18px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.tt:hover{color:var(--ink);background:var(--surface-2)}
+.tt[aria-current=page]{color:var(--accent-ink);background:var(--accent)}
+.planchip{margin-left:auto;font:600 12px/1 var(--body);padding:7px 10px;border-radius:999px;background:var(--med-soft);color:var(--med);white-space:nowrap;max-width:46vw;overflow:hidden;text-overflow:ellipsis}
+.planchip.real{background:var(--accent-soft);color:var(--accent)}
+.bottomnav{display:none}
+.needcard{background:var(--med-soft);color:var(--ink);border-radius:12px;padding:12px 14px;font-size:14px;margin-bottom:14px}
+.needcard a{color:var(--accent);font-weight:600}
+.view{display:flex;flex-direction:column;gap:24px}
+@media (max-width:760px){
+  .toptabs{display:none}
+  body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
+  .bottomnav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+  .bt{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;color:var(--ink-2);text-decoration:none;font:600 11.5px/1 var(--body);border-radius:10px}
+  .bt svg{width:22px;height:22px}
+  .bt[aria-current=page]{color:var(--accent)}
+  .bt[aria-current=page] svg{stroke-width:2.2}
+  header h1{font-size:24px}
+  header p{font-size:14.5px}
+}
+.tt:focus-visible,.bt:focus-visible,.brand:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+/* Dropdown sections */
+details.fold{background:var(--surface);border:1px solid var(--line);border-radius:14px;overflow:hidden}
+details.fold>summary{list-style:none;cursor:pointer;display:flex;align-items:center;gap:10px;padding:16px 20px;font:700 16px/1.2 var(--display)}
+details.fold>summary::-webkit-details-marker{display:none}
+details.fold>summary:after{content:"";margin-left:8px;width:9px;height:9px;border-right:2px solid var(--ink-2);border-bottom:2px solid var(--ink-2);transform:rotate(45deg) translateY(-3px);transition:transform .2s}
+details.fold[open]>summary:after{transform:rotate(-135deg) translateY(-2px)}
+details.fold>summary:hover{background:var(--surface-2)}
+details.fold>summary:focus-visible{outline:2px solid var(--accent);outline-offset:-2px}
+.fc{margin-left:auto;font:600 12.5px/1 var(--body);color:var(--ink-2)}
+.fc .hot{color:var(--high)}
+.fold-body{padding:0 20px 20px;display:flex;flex-direction:column;gap:12px}
+.fold-body.cols{display:grid}
+.sub{display:flex;flex-direction:column;gap:12px;border:1px solid var(--line);border-radius:12px;padding:16px}
 .docbox{position:relative;display:grid;grid-template-columns:auto 1fr;gap:12px;align-items:center;border:1.5px dashed var(--line);border-radius:12px;padding:12px 40px 12px 12px;background:var(--surface-2);cursor:pointer;transition:border-color .15s}
 .docbox:hover,.docbox.over,.docbox.filled{border-color:var(--accent)}
 .docbox:focus-within{outline:2px solid var(--accent);outline-offset:2px}
@@ -186,11 +228,17 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
 </head>
 <body>
 
+<div class="appbar"><div class="appbar-in">
+  <a class="brand" href="#card" data-view="card"><i aria-hidden="true"></i>CareCard</a>
+  <nav class="toptabs" aria-label="Sections"><a href="#card" class="tt" data-view="card"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg><span>Card</span></a><a href="#bills" class="tt" data-view="bills"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Bills</span></a><a href="#care" class="tt" data-view="care"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>Care</span></a><a href="#ask" class="tt" data-view="ask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg><span>Ask</span></a></nav>
+  <span class="planchip" id="planChip">Example plan</span>
+</div></div>
+
 <div class="wrap">
+ <div class="view" id="view-card">
   <header>
-    <span class="eyebrow">CareCard</span>
     <h1>Snap your insurance card. Get a plain-English read on your plan.</h1>
-    <p class="muted">Upload your health insurance card, and your benefits document if you have it. Claude pulls out the numbers that matter (copays, deductible, what's covered, what needs prior approval) and tells you what to do with them.</p>
+    <p class="muted">Upload your health insurance card, and your benefits document if you have it. CareCard pulls out the numbers that matter (copays, deductible, what's covered, what needs prior approval) and tells you what to do with them.</p>
   </header>
 
   <div class="grid">
@@ -229,7 +277,10 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
 
     <section class="results" aria-live="polite" id="results"></section>
   </div>
+ </div>
 
+  <div class="view" id="view-bills" hidden>
+  <div class="needcard" id="billNeedCard" hidden>Bills are checked against your plan. <a href="#card" data-view="card">Read your card first</a> for an exact comparison.</div>
   <section class="panel" id="billPanel" aria-labelledby="bill-h">
     <div><h2 id="bill-h">Check a bill</h2>
     <p class="note">Upload a medical bill, statement, receipt or Explanation of Benefits (EOB). It's checked against the card and coverage above. For the best check, add both the bill and the insurer's EOB for the same visit.</p></div>
@@ -251,6 +302,9 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
     <div id="billResult" class="billres"></div>
   </section>
 
+  </div>
+
+  <div class="view" id="view-care" hidden>
   <section class="panel" id="findPanel" aria-labelledby="find-h">
     <div class="findhead">
       <div><h2 id="find-h">Find top-rated providers</h2>
@@ -289,6 +343,9 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
     <p class="note">Ratings come from Google reviews and reflect patient experience, not medical quality. A high rating doesn't mean a provider takes your plan: copy the NPI and search it in your insurer's directory ("Check network") before booking. NPI numbers come from the CMS NPI Registry and are matched by name and address.</p>
   </section>
 
+  </div>
+
+  <div class="view" id="view-ask" hidden>
   <section class="panel" id="askPanel" aria-labelledby="ask-h">
     <h2 id="ask-h">Ask about your plan</h2>
     <div class="chips" id="chips">
@@ -304,8 +361,12 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
     </form>
   </section>
 
+  </div>
+
   <p class="disclaimer">CareCard explains what's printed on your card and in the documents you upload. It isn't your insurer and can't confirm coverage, eligibility or what a specific provider will bill. Always verify with the member services number on your card before a big appointment or procedure.</p>
 </div>
+
+<nav class="bottomnav" aria-label="Sections"><a href="#card" class="bt" data-view="card"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg><span>Card</span></a><a href="#bills" class="bt" data-view="bills"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Bills</span></a><a href="#care" class="bt" data-view="care"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>Care</span></a><a href="#ask" class="bt" data-view="ask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg><span>Ask</span></a></nav>
 
 <script>
 (function(){
@@ -382,22 +443,23 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
 
     if(has(d.planSummary)) html += `<div class="panel"><h3>In plain English</h3><p>${esc(d.planSummary)}</p></div>`;
 
-    html += `<div class="cols">`;
-    html += `<div class="panel"><h3>What you pay</h3><dl class="facts">`;
+    const nCost = copays.length + (has(c.deductible)?1:0) + (has(c.outOfPocketMax)?1:0) + (has(rx.bin)?3:0) + phones.length;
+    html += `<details class="fold"><summary><span class="ft">Costs &amp; contacts</span><span class="fc">${nCost ? nCost + " items" : "Not on card"}</span></summary><div class="fold-body cols">`;
+    html += `<div class="sub"><h3>What you pay</h3><dl class="facts">`;
     copays.forEach(x=> html += `<dt>${esc(x.label)}</dt><dd>${esc(x.amount)}</dd>`);
     if(has(c.deductible)) html += `<dt>Deductible</dt><dd>${esc(c.deductible)}</dd>`;
     if(has(c.outOfPocketMax)) html += `<dt>Out-of-pocket max</dt><dd>${esc(c.outOfPocketMax)}</dd>`;
     if(!copays.length && !has(c.deductible) && !has(c.outOfPocketMax)) html += `<dt>—</dt><dd>Not printed on card</dd>`;
     html += `</dl></div>`;
 
-    html += `<div class="panel"><h3>Pharmacy &amp; contacts</h3><dl class="facts">`;
+    html += `<div class="sub"><h3>Pharmacy &amp; contacts</h3><dl class="facts">`;
     if(has(rx.bin)) html += `<dt>RxBIN</dt><dd>${esc(rx.bin)}</dd>`;
     if(has(rx.pcn)) html += `<dt>RxPCN</dt><dd>${esc(rx.pcn)}</dd>`;
     if(has(rx.group)) html += `<dt>RxGRP</dt><dd>${esc(rx.group)}</dd>`;
     phones.forEach(x=> html += `<dt>${esc(x.label)}</dt><dd>${esc(x.number)}</dd>`);
     if(has(c.website)) html += `<dt>Website</dt><dd>${esc(c.website)}</dd>`;
     if(!has(rx.bin)&&!phones.length&&!has(c.website)) html += `<dt>—</dt><dd>Upload the back of the card</dd>`;
-    html += `</dl></div></div>`;
+    html += `</dl></div></div></details>`;
 
     const cov = d.coverage;
     const svc = cov && Array.isArray(cov.services) ? cov.services.filter(x=>x && has(x.service)) : [];
@@ -420,7 +482,8 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
     }
 
     if(recs.length){
-      html += `<div class="panel" style="gap:12px"><h3>Recommendations</h3><ul class="recs">`;
+      const nHigh = recs.filter(r=>r.priority==="high").length;
+      html += `<details class="fold"><summary><span class="ft">Recommendations</span><span class="fc">${recs.length}${nHigh?` · <b class="hot">${nHigh} do first</b>`:""}</span></summary><div class="fold-body"><ul class="recs">`;
       recs.forEach(r=>{
         const p = ["high","medium","low"].includes(r.priority)?r.priority:"low";
         html += `<li class="rec" data-p="${p}"><span class="stripe"></span><div>
@@ -428,12 +491,12 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
           ${has(r.category)?`<span class="cat">${esc(r.category)}</span>`:""}</div>
           <p class="muted">${esc(r.detail)}</p></div></li>`;
       });
-      html += `</ul></div>`;
+      html += `</ul></div></details>`;
     }
 
     const qs = d.questionsForInsurer||[];
     if(qs.length){
-      html += `<div class="panel"><h3>Questions to ask when you call</h3><ol class="qs">${qs.map(q=>`<li>${esc(q)}</li>`).join("")}</ol></div>`;
+      html += `<details class="fold"><summary><span class="ft">Questions to ask when you call</span><span class="fc">${qs.length}</span></summary><div class="fold-body"><ol class="qs">${qs.map(q=>`<li>${esc(q)}</li>`).join("")}</ol></div></details>`;
     }
     const miss = (d.missing||[]).filter(has);
     if(miss.length) html += `<p class="note">Couldn't find on this card: ${esc(miss.join(", "))}.</p>`;
@@ -587,7 +650,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
       } else {
         data.card = data.card || {};
         current = data; showId = false; chatTurns = []; $("chat").innerHTML = "";
-        render(); updateNetHint(); setStatus(""); $("provList").innerHTML = ""; lastSearch = null;
+        render(); updateNetHint(); updatePlanChip(); setStatus(""); $("provList").innerHTML = ""; lastSearch = null;
         $("results").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
       }
     }catch(e){
@@ -1060,8 +1123,34 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
   $("cats").addEventListener("click", e=>{ const b = e.target.closest(".chip"); if(b) findProviders({category:b.dataset.cat}); });
   $("customForm").addEventListener("submit", e=>{ e.preventDefault(); const q=$("customQ").value.trim(); if(q) findProviders({custom:q}); });
 
+  // ---------- App views ----------
+  const VIEWS = ["card","bills","care","ask"];
+  function showView(name, push){
+    if(!VIEWS.includes(name)) name = "card";
+    VIEWS.forEach(v => { $("view-" + v).hidden = v !== name; });
+    document.querySelectorAll("[data-view]").forEach(a => {
+      if(a.classList.contains("brand")) return;
+      if(a.dataset.view === name) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current");
+    });
+    $("billNeedCard").hidden = !(name === "bills" && current.example);
+    if(push !== false){ try{ history.replaceState(null, "", "#" + name); }catch(_){} }
+    window.scrollTo({top:0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
+  }
+  document.addEventListener("click", e => {
+    const a = e.target.closest("a[data-view]"); if(!a) return;
+    e.preventDefault(); showView(a.dataset.view);
+  });
+  window.addEventListener("hashchange", () => showView(location.hash.slice(1), false));
+  function updatePlanChip(){
+    const c = current.card || {}, chip = $("planChip");
+    chip.textContent = current.example ? "Example plan" : ([c.insurer, c.planType].filter(has).join(" · ") || "Your plan");
+    chip.classList.toggle("real", !current.example);
+  }
+
   render();
   updateNetHint();
+  updatePlanChip();
+  showView(location.hash.slice(1) || "card", false);
 })();
 </script>
 </body>
