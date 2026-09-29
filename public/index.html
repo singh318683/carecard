@@ -127,7 +127,7 @@ ol.qs{margin:0;padding-left:20px;display:flex;flex-direction:column;gap:6px}
 @media (max-width:760px){
   .toptabs{display:none}
   body{padding-bottom:calc(84px + env(safe-area-inset-bottom,0px))}
-  .bottomnav{display:grid;grid-template-columns:repeat(4,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
+  .bottomnav{display:grid;grid-template-columns:repeat(5,1fr);position:fixed;left:0;right:0;bottom:0;z-index:30;background:var(--surface);border-top:1px solid var(--line);padding:6px 6px calc(6px + env(safe-area-inset-bottom,0px))}
   .bt{display:flex;flex-direction:column;align-items:center;gap:3px;padding:6px 0;color:var(--ink-2);text-decoration:none;font:600 11.5px/1 var(--body);border-radius:10px}
   .bt svg{width:22px;height:22px}
   .bt[aria-current=page]{color:var(--accent)}
@@ -220,9 +220,50 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
 .issues .tags{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
 .issues .amt{font:600 15px/1.3 var(--mono);font-variant-numeric:tabular-nums;white-space:nowrap}
 .dlrow{display:flex;gap:10px;flex-wrap:wrap}
+.estform{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;align-items:end}
+.estform .full{grid-column:1/-1}
+@media (max-width:760px){.estform{grid-template-columns:1fr 1fr}.estform .seg{grid-column:1/-1}}
+.seg{border:0;margin:0;padding:0;display:flex;flex-direction:column;gap:6px;min-width:0}
+.seg legend{font-weight:600;font-size:14px;padding:0;margin-bottom:6px}
+.seg{flex-direction:row;flex-wrap:wrap}
+.seg label{flex:1;min-width:0}
+.seg input{position:absolute;opacity:0;pointer-events:none}
+.seg span{display:block;text-align:center;padding:10px 8px;border:1px solid var(--line);font-size:14px;font-weight:600;cursor:pointer;background:var(--surface);color:var(--ink-2);white-space:nowrap}
+.seg label:first-of-type span{border-radius:10px 0 0 10px}
+.seg label:last-of-type span{border-radius:0 10px 10px 0;border-left:0}
+.seg input:checked+span{background:var(--accent);border-color:var(--accent);color:var(--accent-ink)}
+.seg input:focus-visible+span{outline:2px solid var(--accent);outline-offset:2px}
+.money-in{position:relative;display:block}
+.money-in i{position:absolute;left:12px;top:50%;transform:translateY(-50%);font-style:normal;color:var(--ink-2);font-family:var(--mono);font-size:14px}
+.money-in input{padding-left:26px;font-family:var(--mono)}
+.estres{display:flex;flex-direction:column;gap:16px}
+.estres:empty{display:none}
+.est-head{border-radius:14px;padding:18px 20px;background:var(--accent-soft);display:flex;flex-direction:column;gap:6px}
+.est-head .k{font:600 11.5px/1.2 var(--body);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-2)}
+.est-head .big{font:600 clamp(28px,5vw,40px)/1.1 var(--mono);font-variant-numeric:tabular-nums;color:var(--accent)}
+.est-head .esub{font-size:14px;color:var(--ink-2)}
+.splitbar{height:12px;border-radius:6px;overflow:hidden;display:flex;background:var(--surface-2);margin-top:6px}
+.splitbar .y{background:var(--high)} .splitbar .p{background:var(--accent)}
+.legend{display:flex;gap:14px;flex-wrap:wrap;font-size:12.5px;color:var(--ink-2)}
+.legend i{display:inline-block;width:10px;height:10px;border-radius:3px;margin-right:5px;vertical-align:-1px}
+.warn{background:var(--med-soft);color:var(--ink);border-radius:10px;padding:10px 14px;font-size:14px}
+.warn b{color:var(--med)}
+@media (max-width:560px){
+  table.est-tbl{min-width:0}
+  .est-tbl thead{display:none}
+  .est-tbl,.est-tbl tbody,.est-tbl tr,.est-tbl td{display:block}
+  .est-tbl tr{border-bottom:1px solid var(--line);padding:10px 0}
+  table.est-tbl td{border:0;padding:3px 0;display:grid;grid-template-columns:92px minmax(0,1fr);gap:10px}
+  table.est-tbl td.nm{display:block;font-weight:600;padding-bottom:4px}
+  table.est-tbl td.empty{display:none}
+  .est-tbl td[data-label]:before{content:attr(data-label);font:600 11px/1.6 var(--body);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-2)}
+  .est-tbl tr.tot{border-bottom:0}
+}
+table.cov td.money small{display:block;color:var(--ink-2);font-size:11.5px}
 .script{background:var(--surface-2);border-radius:10px;padding:12px 14px;font-size:14.5px;white-space:pre-wrap}
 </style>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="estimate-calc.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 </head>
@@ -230,7 +271,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
 
 <div class="appbar"><div class="appbar-in">
   <a class="brand" href="#card" data-view="card"><i aria-hidden="true"></i>CareCard</a>
-  <nav class="toptabs" aria-label="Sections"><a href="#card" class="tt" data-view="card"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg><span>Card</span></a><a href="#bills" class="tt" data-view="bills"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Bills</span></a><a href="#care" class="tt" data-view="care"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>Care</span></a><a href="#ask" class="tt" data-view="ask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg><span>Ask</span></a></nav>
+  <nav class="toptabs" aria-label="Sections"><a href="#card" class="tt" data-view="card"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg><span>Card</span></a><a href="#estimate" class="tt" data-view="estimate"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8 7h8M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15h.01M8.5 18h.01M12 18h3.5"/></svg><span>Estimate</span></a><a href="#bills" class="tt" data-view="bills"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Bills</span></a><a href="#care" class="tt" data-view="care"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>Care</span></a><a href="#ask" class="tt" data-view="ask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg><span>Ask</span></a></nav>
   <span class="planchip" id="planChip">Example plan</span>
 </div></div>
 
@@ -278,6 +319,49 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
     <section class="results" aria-live="polite" id="results"></section>
   </div>
  </div>
+
+  <div class="view" id="view-estimate" hidden>
+  <div class="needcard" id="estNeedCard" hidden>Estimates use your plan's copays, deductible and coinsurance. <a href="#card" data-view="card">Read your card and coverage document first</a> for your own numbers; until then the example plan is used.</div>
+  <section class="panel" id="estPanel" aria-labelledby="est-h">
+    <div><h2 id="est-h">Estimate a cost</h2>
+    <p class="note">See what a service will likely cost you under your plan before you go.</p></div>
+    <div class="chips" id="estChips">
+      <button class="chip" type="button">MRI</button>
+      <button class="chip" type="button">CT scan</button>
+      <button class="chip" type="button">Emergency room visit</button>
+      <button class="chip" type="button">Urgent care visit</button>
+      <button class="chip" type="button">Specialist visit</button>
+      <button class="chip" type="button">Childbirth (vaginal delivery)</button>
+      <button class="chip" type="button">C-section</button>
+      <button class="chip" type="button">Colonoscopy</button>
+      <button class="chip" type="button">Blood work</button>
+      <button class="chip" type="button">X-ray</button>
+      <button class="chip" type="button">Physical therapy visit</button>
+      <button class="chip" type="button">Outpatient surgery</button>
+    </div>
+    <form id="estForm" class="estform">
+      <label class="field full"><span>Service</span>
+        <input type="text" id="estService" placeholder="e.g. knee MRI, allergy test, sleep study" autocomplete="off">
+      </label>
+      <fieldset class="seg"><legend>Provider</legend>
+        <label><input type="radio" name="estNet" id="estNetIn" value="in" checked><span>In network</span></label>
+        <label><input type="radio" name="estNet" id="estNetOut" value="out"><span>Out of network</span></label>
+      </fieldset>
+      <label class="field"><span>Deductible paid so far</span>
+        <span class="money-in"><i>$</i><input type="text" id="estDedPaid" inputmode="decimal" placeholder="0"></span>
+      </label>
+      <label class="field"><span>Out-of-pocket paid so far <span class="muted" style="font-weight:400">(optional)</span></span>
+        <span class="money-in"><i>$</i><input type="text" id="estOopPaid" inputmode="decimal" placeholder="auto"></span>
+      </label>
+      <label class="field"><span>ZIP <span class="muted" style="font-weight:400">(optional)</span></span>
+        <input type="text" id="estZip" inputmode="numeric" maxlength="5" placeholder="local prices">
+      </label>
+      <div class="row full"><button class="btn primary" id="estBtn" type="submit">Estimate my cost</button></div>
+    </form>
+    <div class="status" id="estStatus" hidden></div>
+    <div id="estResult" class="estres"></div>
+  </section>
+  </div>
 
   <div class="view" id="view-bills" hidden>
   <div class="needcard" id="billNeedCard" hidden>Bills are checked against your plan. <a href="#card" data-view="card">Read your card first</a> for an exact comparison.</div>
@@ -366,7 +450,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
   <p class="disclaimer">CareCard explains what's printed on your card and in the documents you upload. It isn't your insurer and can't confirm coverage, eligibility or what a specific provider will bill. Always verify with the member services number on your card before a big appointment or procedure.</p>
 </div>
 
-<nav class="bottomnav" aria-label="Sections"><a href="#card" class="bt" data-view="card"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg><span>Card</span></a><a href="#bills" class="bt" data-view="bills"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Bills</span></a><a href="#care" class="bt" data-view="care"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>Care</span></a><a href="#ask" class="bt" data-view="ask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg><span>Ask</span></a></nav>
+<nav class="bottomnav" aria-label="Sections"><a href="#card" class="bt" data-view="card"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="2.5"/><path d="M3 10h18M7 15h4"/></svg><span>Card</span></a><a href="#estimate" class="bt" data-view="estimate"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="3" width="14" height="18" rx="2.5"/><path d="M8 7h8M8.5 11.5h.01M12 11.5h.01M15.5 11.5h.01M8.5 15h.01M12 15h.01M15.5 15h.01M8.5 18h.01M12 18h3.5"/></svg><span>Estimate</span></a><a href="#bills" class="bt" data-view="bills"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 3h12v18l-3-2-3 2-3-2-3 2z"/><path d="M9 8h6M9 12h6"/></svg><span>Bills</span></a><a href="#care" class="bt" data-view="care"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 21s-7-6.2-7-11.5A7 7 0 0 1 19 9.5C19 14.8 12 21 12 21z"/><circle cx="12" cy="9.5" r="2.5"/></svg><span>Care</span></a><a href="#ask" class="bt" data-view="ask"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 5h16v11H9l-5 4z"/><path d="M8 9h8M8 12h5"/></svg><span>Ask</span></a></nav>
 
 <script>
 (function(){
@@ -650,7 +734,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
       } else {
         data.card = data.card || {};
         current = data; showId = false; chatTurns = []; $("chat").innerHTML = "";
-        render(); updateNetHint(); updatePlanChip(); setStatus(""); $("provList").innerHTML = ""; lastSearch = null;
+        render(); updateNetHint(); updatePlanChip(); setStatus(""); lastEst = null; $("estResult").innerHTML = ""; $("provList").innerHTML = ""; lastSearch = null;
         $("results").scrollIntoView({behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block:"start"});
       }
     }catch(e){
@@ -1123,8 +1207,106 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
   $("cats").addEventListener("click", e=>{ const b = e.target.closest(".chip"); if(b) findProviders({category:b.dataset.cat}); });
   $("customForm").addEventListener("submit", e=>{ e.preventDefault(); const q=$("customQ").value.trim(); if(q) findProviders({custom:q}); });
 
+  // ---------- Cost estimator ----------
+  let lastEst = null, estCtl = null;
+  const usdE = x => "$" + Math.round(x).toLocaleString("en-US");
+  const usdC = x => "$" + x.toLocaleString("en-US",{minimumFractionDigits:2, maximumFractionDigits:2});
+  const rangeTxt = (a,b) => { const lo = Math.min(a,b), hi = Math.max(a,b); return Math.round(lo) === Math.round(hi) ? usdE(lo) : `${usdE(lo)} – ${usdE(hi)}`; };
+  const moneyVal = id => { const v = $(id).value.replace(/[$,\s]/g,""); return v === "" ? null : (isFinite(Number(v)) ? Math.max(0, Number(v)) : null); };
+  function setEst(msg, err){ const s=$("estStatus"); if(!msg){ s.hidden=true; return; } s.hidden=false; s.textContent=msg; s.classList.toggle("err", !!err); }
+
+  async function runEstimate(){
+    const service = $("estService").value.trim();
+    if(!service){ setEst("Pick a service above or type one.", true); $("estService").focus(); return; }
+    const zip = $("estZip").value.trim();
+    if(zip && !/^\d{5}$/.test(zip)){ setEst("ZIP should be 5 digits, or leave it blank.", true); return; }
+    estCtl && estCtl.abort(); estCtl = new AbortController();
+    $("estBtn").disabled = true; $("estResult").innerHTML = "";
+    setEst(`Estimating ${service}… this takes about 15–30 seconds.`);
+    try{
+      const card = {...(current.card||{})}; delete card.memberId;
+      const d = await post("/api/estimate", { service, network: $("estNetOut").checked ? "out" : "in", zip, card,
+        coverage: current.coverage || null, planSummary: current.planSummary || "", example: !!current.example }, estCtl.signal);
+      if(!d || !Array.isArray(d.components) || !d.components.length) throw {code:"invalid_json"};
+      lastEst = d; setEst(""); renderEstimate();
+    }catch(e){
+      if(e && e.code === "cancelled") return;
+      setEst(copyFor(e && e.code, e && e.message), true);
+    }finally{ $("estBtn").disabled = false; }
+  }
+
+  function renderEstimate(){
+    const d = lastEst; if(!d) return;
+    const plan = d.plan || {};
+    const paid = { deductible: moneyVal("estDedPaid") || 0, outOfPocket: moneyVal("estOopPaid") };
+    const lo = CareCalc.calc(d.components, plan, paid, "low"), hi = CareCalc.calc(d.components, plan, paid, "high");
+    const yourShare = hi.price ? Math.round(hi.you / hi.price * 100) : 0;
+    const out = d.network === "out";
+    let h = `<div class="est-head">
+      <span class="k">You'd likely pay${out ? " (out of network)" : ""}</span>
+      <span class="big">${rangeTxt(lo.you, hi.you)}</span>
+      <span class="esub">${esc(d.service || "")}${has(d.setting) ? " · " + esc(d.setting) : ""}</span>
+      <span class="esub">Total price ${rangeTxt(lo.price, hi.price)} · your plan pays ${rangeTxt(lo.plan, hi.plan)}</span>
+      <div class="splitbar" role="img" aria-label="At the higher price you pay ${yourShare}% and your plan pays ${100-yourShare}%"><span class="y" style="width:${yourShare}%"></span><span class="p" style="width:${100-yourShare}%"></span></div>
+      <div class="legend"><span><i style="background:var(--high)"></i>You ${yourShare}%</span><span><i style="background:var(--accent)"></i>Plan ${100-yourShare}%</span><span>at the higher price</span></div>
+    </div>`;
+    if(d.priorAuth) h += `<div class="warn"><b>Prior approval needed.</b> ${esc(d.priorAuthNote || "Your plan may deny the claim if this isn't approved before the service.")}</div>`;
+    if(out) h += `<div class="warn"><b>Out of network:</b> the provider can also bill you the difference between their charge and what your plan allows (balance billing), so the real cost can be higher. Emergency care is protected by the No Surprises Act.</div>`;
+    if(hi.capped || lo.capped) h += `<div class="warn"><b>Out-of-pocket max reached.</b> Your share stops at your plan's yearly maximum.</div>`;
+    const kind = String(plan.planKind||"").toLowerCase();
+    if(kind.includes("indemnity") || kind.includes("short")) h += `<div class="warn"><b>${esc(plan.planKind)} plan:</b> it pays set amounts and has no out-of-pocket maximum, so large bills stay large.</div>`;
+
+    // plan numbers used
+    const dedTxt = hi.deductibleKnown ? `${usdE(plan.deductible)} deductible (${usdE(hi.deductibleLeftBefore)} left)` : "Deductible not found";
+    const oopTxt = hi.oopKnown ? `${usdE(plan.outOfPocketMax)} out-of-pocket max (${usdE(hi.oopLeftBefore)} left)` : "Out-of-pocket max not found";
+    h += `<p class="note">Using: ${esc(dedTxt)} · ${esc(oopTxt)}${has(plan.source) ? " · from " + esc(plan.source) : ""}. Change "paid so far" above to update instantly.</p>`;
+
+    // breakdown table
+    h += `<div class="tablewrap"><table class="cov est-tbl"><thead><tr><th>Part of the bill</th><th>Price</th><th>Your plan's rule</th><th>You pay</th></tr></thead><tbody>` +
+      d.components.map((c,i)=>{
+        const a = lo.rows[i], b = hi.rows[i];
+        return `<tr><td class="nm">${esc(c.name||"")}</td><td class="money" data-label="Price">${rangeTxt(a.price, b.price)}</td>
+          <td data-label="Plan rule"><span>${esc(c.ruleText||"")}${has(c.ruleSource)?`<small class="muted" style="display:block">${esc(c.ruleSource)}</small>`:""}</span></td>
+          <td class="money" data-label="You pay"><b>${rangeTxt(a.you, b.you)}</b></td></tr>`;
+      }).join("") +
+      `<tr class="tot"><td class="nm"><b>Total</b></td><td class="money" data-label="Price"><b>${rangeTxt(lo.price, hi.price)}</b></td><td class="empty"></td><td class="money" data-label="You pay"><b>${rangeTxt(lo.you, hi.you)}</b></td></tr></tbody></table></div>`;
+
+    // step-by-step math
+    const steps = sc => sc.rows.map(r => {
+      const parts = [];
+      if(r.notCovered) parts.push(`not covered, you pay all ${usdC(r.notCovered)}`);
+      if(r.overBenefit) parts.push(`plan pays a fixed ${usdC(r.price - r.overBenefit)}, you pay the rest ${usdC(r.overBenefit)}`);
+      if(r.deductible) parts.push(`deductible ${usdC(r.deductible)}`);
+      if(r.copay) parts.push(`copay ${usdC(r.copay)}`);
+      if(r.coinsurance) parts.push(`coinsurance ${usdC(r.coinsurance)}`);
+      if(!parts.length) parts.push("covered in full");
+      return `<li><b>${esc(r.name)}</b>: price ${usdC(r.price)} → ${parts.join(" + ")} = <b>${usdC(r.you)}</b></li>`;
+    }).join("");
+    h += `<details class="fold"><summary><span class="ft">How this was calculated</span><span class="fc">steps</span></summary><div class="fold-body">
+      <p class="muted">Order for each part: remaining deductible first, then the copay, then your coinsurance share of the rest. The total stops at your remaining out-of-pocket maximum.</p>
+      <h3>At the lower price</h3><ul class="plain">${steps(lo)}</ul>
+      <h3>At the higher price</h3><ul class="plain">${steps(hi)}</ul>
+      ${hi.deductibleKnown ? `<p class="note">Deductible left after this: ${usdC(lo.deductibleLeftAfter)} (lower price) to ${usdC(hi.deductibleLeftAfter)} (higher price).</p>` : ""}
+    </div></details>`;
+
+    const tips = (d.tips||[]).filter(has), asm = (d.assumptions||[]).filter(has);
+    if(tips.length || asm.length){
+      h += `<div class="cols">`;
+      if(tips.length) h += `<div class="panel"><h3>Ways to pay less</h3><ul class="plain">${tips.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`;
+      if(asm.length) h += `<div class="panel"><h3>Assumptions</h3><ul class="plain">${asm.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>`;
+      h += `</div>`;
+    }
+    h += `<p class="note">${esc(d.priceNote || "Prices are typical ranges, not quotes.")} This is an estimate, not a guarantee of payment. For an exact figure, use your insurer's cost estimator or ask the provider for a good-faith estimate with the billing codes.</p>`;
+    $("estResult").innerHTML = h;
+  }
+
+  $("estForm").addEventListener("submit", e => { e.preventDefault(); runEstimate(); });
+  $("estChips").addEventListener("click", e => { const b = e.target.closest(".chip"); if(!b) return; $("estService").value = b.textContent.trim(); runEstimate(); });
+  ["estDedPaid","estOopPaid"].forEach(id => $(id).addEventListener("input", () => { if(lastEst) renderEstimate(); }));
+  document.querySelectorAll('input[name="estNet"]').forEach(r => r.addEventListener("change", () => { if(lastEst && $("estService").value.trim()) runEstimate(); }));
+
   // ---------- App views ----------
-  const VIEWS = ["card","bills","care","ask"];
+  const VIEWS = ["card","estimate","bills","care","ask"];
   function showView(name, push){
     if(!VIEWS.includes(name)) name = "card";
     VIEWS.forEach(v => { $("view-" + v).hidden = v !== name; });
@@ -1133,6 +1315,7 @@ input[type=range]{width:100%;accent-color:var(--accent);height:40px}
       if(a.dataset.view === name) a.setAttribute("aria-current","page"); else a.removeAttribute("aria-current");
     });
     $("billNeedCard").hidden = !(name === "bills" && current.example);
+    $("estNeedCard").hidden = !(name === "estimate" && current.example);
     if(push !== false){ try{ history.replaceState(null, "", "#" + name); }catch(_){} }
     window.scrollTo({top:0, behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth"});
   }
